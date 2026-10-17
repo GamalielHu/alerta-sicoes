@@ -17,6 +17,8 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -30,11 +32,15 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -54,6 +60,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
@@ -75,7 +82,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import kotlinx.coroutines.Dispatchers
@@ -102,12 +111,12 @@ class MainActivity : ComponentActivity() {
         setContent {
             val oscuro = isSystemInDarkTheme()
             val colores = if (oscuro) {
-                darkColorScheme(primary = Color(0xFF7CC4E4), secondary = Color(0xFFF4B740), tertiary = Color(0xFFFF8A80))
+                darkColorScheme(primary = Color(0xFF7CC4E4), secondary = Color(0xFFF4B740), tertiary = Color(0xFF81C784))
             } else {
                 lightColorScheme(
                     primary = Color(0xFF0B4F6C),
                     secondary = Color(0xFFB87800),
-                    tertiary = Color(0xFFC62828),
+                    tertiary = Color(0xFF1B7A3A),
                     surfaceVariant = Color(0xFFE8EEF1),
                 )
             }
@@ -118,16 +127,22 @@ class MainActivity : ComponentActivity() {
 
 private val fmtFechaHora = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.ROOT)
 private fun fechaHora(ms: Long): String = fmtFechaHora.format(Date(ms))
+private fun hora(h: Int): String = String.format(Locale.ROOT, "%02d:00", h)
 
-private fun abrirFicha(ctx: Context, cuce: String) {
-    ctx.startActivity(Intent(ctx, FichaActivity::class.java).putExtra(FichaActivity.EXTRA_CUCE, cuce))
+private fun abrirSicoes(ctx: Context, cuce: String, modo: String) {
+    ctx.startActivity(
+        Intent(ctx, FichaActivity::class.java)
+            .putExtra(FichaActivity.EXTRA_CUCE, cuce)
+            .putExtra(FichaActivity.EXTRA_MODO, modo)
+    )
 }
 
-private fun compartir(ctx: Context, c: Convocatoria) {
+private fun compartir(ctx: Context, c: Convocatoria, monto: String?) {
     val texto = buildString {
+        append(c.objeto).append("\n")
         append(c.entidad).append("\n")
         append(c.tipo).append(" · ").append(c.modalidad).append("\n")
-        append(c.objeto).append("\n")
+        if (monto != null) append("Precio referencial: ").append(monto).append("\n")
         append("CUCE: ").append(c.cuce).append("\n")
         append("Publicación: ").append(c.fechaPublicacion).append("\n")
         append("Presentación: ").append(c.fechaPresentacion)
@@ -167,6 +182,7 @@ fun PantallaPrincipal() {
 
     val vigilancias = remember(version) { almacen.vigilancias() }
     val convocatorias = remember(version) { almacen.convocatorias() }
+    val montos = remember(version) { almacen.montos() }
     val ultima = remember(version) { almacen.ultimaRevision() }
     val error = remember(version) { almacen.ultimoError() }
     val intervalo = remember(version) { almacen.intervaloMin() }
@@ -175,7 +191,10 @@ fun PantallaPrincipal() {
     val snackbar = remember { SnackbarHostState() }
     var cargando by remember { mutableStateOf(false) }
     var pestana by rememberSaveable { mutableIntStateOf(0) }
-    var dialogoNueva by remember { mutableStateOf(false) }
+    var dialogo by remember { mutableStateOf(false) }
+    var editando by remember { mutableStateOf<Vigilancia?>(null) }
+    var plantilla by remember { mutableStateOf<String?>(null) }
+    val busqueda = remember { EstadoBusqueda() }
 
     val revisarAhora: () -> Unit = {
         if (!cargando) {
@@ -227,8 +246,8 @@ fun PantallaPrincipal() {
             )
         },
         floatingActionButton = {
-            if (pestana == 1) {
-                FloatingActionButton(onClick = { dialogoNueva = true }) {
+            if (pestana == 2) {
+                FloatingActionButton(onClick = { editando = null; plantilla = null; dialogo = true }) {
                     Icon(Icons.Filled.Add, contentDescription = "Agregar entidad")
                 }
             }
@@ -240,15 +259,21 @@ fun PantallaPrincipal() {
                 Tab(
                     selected = pestana == 0,
                     onClick = { pestana = 0 },
-                    text = { Text("Convocatorias (${convocatorias.distinctBy { it.cuce }.size})") },
+                    text = { Text("Alertas (${convocatorias.distinctBy { it.cuce }.size})") },
                 )
                 Tab(
                     selected = pestana == 1,
                     onClick = { pestana = 1 },
+                    icon = { Icon(Icons.Filled.Search, contentDescription = null) },
+                    text = { Text("Buscar") },
+                )
+                Tab(
+                    selected = pestana == 2,
+                    onClick = { pestana = 2 },
                     text = { Text("Entidades (${vigilancias.size})") },
                 )
             }
-            if (error != null) {
+            if (error != null && pestana != 1) {
                 Surface(color = MaterialTheme.colorScheme.errorContainer, modifier = Modifier.fillMaxWidth()) {
                     Text(
                         "Problema en la última revisión:\n$error",
@@ -259,27 +284,37 @@ fun PantallaPrincipal() {
                 }
             }
             when (pestana) {
-                0 -> ListaConvocatorias(convocatorias, vigilancias, onIrAEntidades = { pestana = 1 })
+                0 -> ListaConvocatorias(convocatorias, vigilancias, montos, onIrAEntidades = { pestana = 2 })
+                1 -> PantallaBusqueda(
+                    estado = busqueda,
+                    montos = montos,
+                    onVigilar = { entidad ->
+                        editando = null
+                        plantilla = entidad
+                        dialogo = true
+                    },
+                )
                 else -> PantallaEntidades(
+                    almacen = almacen,
+                    version = version,
                     vigilancias = vigilancias,
                     convocatorias = convocatorias,
-                    intervalo = intervalo,
+                    onEditar = { v -> editando = v; plantilla = null; dialogo = true },
                     onEliminar = { almacen.eliminarVigilancia(it) },
-                    onIntervalo = { m ->
-                        almacen.setIntervaloMin(m)
-                        Programador.programar(ctx, m, reemplazar = true)
-                    },
                 )
             }
         }
     }
 
-    if (dialogoNueva) {
+    if (dialogo) {
         DialogoEntidad(
-            onCerrar = { dialogoNueva = false },
+            inicial = editando,
+            textoInicial = plantilla,
+            onCerrar = { dialogo = false },
             onGuardar = { v ->
-                almacen.agregarVigilancia(v)
-                dialogoNueva = false
+                if (editando != null) almacen.actualizarVigilancia(v) else almacen.agregarVigilancia(v)
+                dialogo = false
+                editando = null
                 pestana = 0
                 revisarAhora()
             },
@@ -287,11 +322,16 @@ fun PantallaPrincipal() {
     }
 }
 
+// ------------------------------------------------------------------
+// Alertas (lo que encuentra la revisión automática)
+// ------------------------------------------------------------------
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ListaConvocatorias(
     lista: List<Convocatoria>,
     vigilancias: List<Vigilancia>,
+    montos: Map<String, String>,
     onIrAEntidades: () -> Unit,
 ) {
     var filtroTipo by rememberSaveable { mutableStateOf("") }
@@ -307,19 +347,7 @@ fun ListaConvocatorias(
         )
 
     Column(Modifier.fillMaxSize()) {
-        Row(
-            Modifier.horizontalScroll(rememberScrollState()).padding(horizontal = 12.dp, vertical = 6.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            FilterChip(selected = filtroTipo.isEmpty(), onClick = { filtroTipo = "" }, label = { Text("Todos") })
-            TIPOS.forEach { (cod, nombre) ->
-                FilterChip(
-                    selected = filtroTipo == cod,
-                    onClick = { filtroTipo = if (filtroTipo == cod) "" else cod },
-                    label = { Text(nombre) },
-                )
-            }
-        }
+        ChipsTipo(filtroTipo, onCambio = { filtroTipo = it })
         if (vigilancias.size > 1) {
             Row(
                 Modifier.horizontalScroll(rememberScrollState()).padding(horizontal = 12.dp),
@@ -347,11 +375,158 @@ fun ListaConvocatorias(
                 contentPadding = PaddingValues(12.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                items(visibles, key = { it.vigilanciaId + "|" + it.cuce }) { TarjetaConvocatoria(it) }
+                items(visibles, key = { it.vigilanciaId + "|" + it.cuce }) { TarjetaConvocatoria(it, montos[it.cuce]) }
             }
         }
     }
 }
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ChipsTipo(seleccion: String, onCambio: (String) -> Unit) {
+    Row(
+        Modifier.horizontalScroll(rememberScrollState()).padding(horizontal = 12.dp, vertical = 6.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        FilterChip(selected = seleccion.isEmpty(), onClick = { onCambio("") }, label = { Text("Todos") })
+        TIPOS.forEach { (cod, nombre) ->
+            FilterChip(
+                selected = seleccion == cod,
+                onClick = { onCambio(if (seleccion == cod) "" else cod) },
+                label = { Text(nombre) },
+            )
+        }
+    }
+}
+
+// ------------------------------------------------------------------
+// Búsqueda libre (no se guarda ni se vigila)
+// ------------------------------------------------------------------
+
+class EstadoBusqueda {
+    var entidad by mutableStateOf("")
+    var objeto by mutableStateOf("")
+    var tipos by mutableStateOf(setOf("O", "B", "S", "C"))
+    var soloVigentes by mutableStateOf(true)
+    var buscando by mutableStateOf(false)
+    var resultados by mutableStateOf<List<FilaSicoes>?>(null)
+    var error by mutableStateOf<String?>(null)
+}
+
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
+@Composable
+fun PantallaBusqueda(estado: EstadoBusqueda, montos: Map<String, String>, onVigilar: (String) -> Unit) {
+    val scope = rememberCoroutineScope()
+    val foco = LocalFocusManager.current
+
+    val buscar: () -> Unit = {
+        if (!estado.buscando && (estado.entidad.isNotBlank() || estado.objeto.isNotBlank()) && estado.tipos.isNotEmpty()) {
+            foco.clearFocus()
+            estado.buscando = true
+            estado.error = null
+            scope.launch {
+                try {
+                    estado.resultados = withContext(Dispatchers.IO) {
+                        SicoesCliente().buscar(
+                            entidad = estado.entidad,
+                            tipos = estado.tipos,
+                            objeto = estado.objeto,
+                            soloVigentes = estado.soloVigentes,
+                            maxPaginas = 10,
+                        )
+                    }
+                } catch (e: Exception) {
+                    estado.error = "No se pudo consultar el SICOES: ${e.message}"
+                }
+                estado.buscando = false
+            }
+        }
+    }
+
+    LazyColumn(
+        contentPadding = PaddingValues(12.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        item {
+            Column {
+                OutlinedTextField(
+                    value = estado.entidad,
+                    onValueChange = { estado.entidad = it },
+                    label = { Text("Entidad") },
+                    placeholder = { Text("Ej.: Municipal de Sucre") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                    keyboardActions = KeyboardActions(onSearch = { buscar() }),
+                )
+                Spacer(Modifier.height(6.dp))
+                OutlinedTextField(
+                    value = estado.objeto,
+                    onValueChange = { estado.objeto = it },
+                    label = { Text("Objeto de contratación (opcional)") },
+                    placeholder = { Text("Ej.: pavimento, puente, unidad educativa") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                    keyboardActions = KeyboardActions(onSearch = { buscar() }),
+                )
+                FlowRow(
+                    Modifier.padding(top = 6.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    TIPOS.forEach { (cod, nombre) ->
+                        FilterChip(
+                            selected = cod in estado.tipos,
+                            onClick = { estado.tipos = if (cod in estado.tipos) estado.tipos - cod else estado.tipos + cod },
+                            label = { Text(nombre) },
+                        )
+                    }
+                }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Checkbox(checked = estado.soloVigentes, onCheckedChange = { estado.soloVigentes = it })
+                    Text("Solo vigentes", style = MaterialTheme.typography.bodyMedium)
+                    Spacer(Modifier.weight(1f))
+                    Button(
+                        onClick = buscar,
+                        enabled = !estado.buscando && (estado.entidad.isNotBlank() || estado.objeto.isNotBlank()) && estado.tipos.isNotEmpty(),
+                    ) {
+                        if (estado.buscando) {
+                            CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp, color = Color.White)
+                        } else {
+                            Icon(Icons.Filled.Search, contentDescription = null)
+                        }
+                        Spacer(Modifier.width(6.dp))
+                        Text("Buscar")
+                    }
+                }
+                Text(
+                    "Esta búsqueda es solo para consultar: no se guarda ni se revisa sola.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                estado.error?.let {
+                    Spacer(Modifier.height(6.dp))
+                    Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+                }
+                estado.resultados?.let {
+                    Spacer(Modifier.height(6.dp))
+                    Text(
+                        if (it.isEmpty()) "Sin resultados." else "${it.size} resultado(s)" + if (it.size >= 100) " (se muestran los primeros 100)" else "",
+                        style = MaterialTheme.typography.labelLarge,
+                    )
+                }
+            }
+        }
+        items(estado.resultados ?: emptyList(), key = { "b|" + it.cuce }) { f ->
+            val c = Convocatoria.desdeFila(f, vigilanciaId = "", detectadoEn = 0L, inicial = true)
+            TarjetaConvocatoria(c, montos[c.cuce], onVigilar = { onVigilar(f.entidad) })
+        }
+    }
+}
+
+// ------------------------------------------------------------------
+// Tarjeta de una convocatoria
+// ------------------------------------------------------------------
 
 @Composable
 private fun Mensaje(texto: String, boton: String? = null, onBoton: () -> Unit = {}) {
@@ -395,10 +570,11 @@ private fun Dato(etiqueta: String, valor: String, destacado: Boolean = false) {
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun TarjetaConvocatoria(c: Convocatoria) {
+fun TarjetaConvocatoria(c: Convocatoria, monto: String?, onVigilar: (() -> Unit)? = null) {
     val ctx = LocalContext.current
-    val nueva = !c.inicial && System.currentTimeMillis() - c.detectadoEn < 48L * 3600 * 1000
+    val nueva = !c.inicial && c.detectadoEn > 0 && System.currentTimeMillis() - c.detectadoEn < 48L * 3600 * 1000
     val colorTipo = when (codigoTipo(c.tipo)) {
         "O" -> Color(0xFF0B4F6C)
         "B" -> Color(0xFF2E7D32)
@@ -406,7 +582,7 @@ fun TarjetaConvocatoria(c: Convocatoria) {
         else -> Color(0xFF8D5A00)
     }
     Card(
-        modifier = Modifier.fillMaxWidth().clickable { abrirFicha(ctx, c.cuce) },
+        modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
     ) {
         Column(Modifier.padding(14.dp)) {
@@ -422,34 +598,73 @@ fun TarjetaConvocatoria(c: Convocatoria) {
                 }
             }
             Spacer(Modifier.height(8.dp))
-            Text(c.entidad, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-            Spacer(Modifier.height(2.dp))
-            Text(c.objeto, style = MaterialTheme.typography.bodyMedium)
-            Spacer(Modifier.height(8.dp))
+            // Nombre del proyecto: lo más visible de la tarjeta
+            Text(
+                c.objeto,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary,
+            )
+            Spacer(Modifier.height(4.dp))
+            Text(c.entidad, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+            Spacer(Modifier.height(6.dp))
+            // Monto (precio referencial del Formulario 100)
+            if (monto != null) {
+                Text(
+                    monto,
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = MaterialTheme.colorScheme.tertiary,
+                )
+            } else {
+                Text(
+                    "Monto: toca \"Form 100\" para verlo",
+                    style = MaterialTheme.typography.bodySmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.secondary,
+                    modifier = Modifier.clickable { abrirSicoes(ctx, c.cuce, FichaActivity.MODO_FORM100) },
+                )
+            }
+            Spacer(Modifier.height(6.dp))
             Dato("Fecha de publicación", c.fechaPublicacion)
             Dato("Fecha de presentación", c.fechaPresentacion + plazo(c.fechaPresentacion), destacado = true)
-            Dato("Detectada por la app", fechaHora(c.detectadoEn))
+            if (c.detectadoEn > 0) Dato("Detectada por la app", fechaHora(c.detectadoEn))
             Dato("CUCE", c.cuce)
             Dato("Estado", c.estado)
-            Row {
-                TextButton(onClick = { abrirFicha(ctx, c.cuce) }) { Text("Ver ficha en SICOES") }
-                TextButton(onClick = { compartir(ctx, c) }) { Text("Compartir") }
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                Button(onClick = { abrirSicoes(ctx, c.cuce, FichaActivity.MODO_DBC) }) { Text("Ver DBC") }
+                OutlinedButton(onClick = { abrirSicoes(ctx, c.cuce, FichaActivity.MODO_FORM100) }) { Text("Form 100") }
+                TextButton(onClick = { abrirSicoes(ctx, c.cuce, FichaActivity.MODO_FICHA) }) { Text("Ficha") }
+                TextButton(onClick = { compartir(ctx, c, monto) }) { Text("Compartir") }
+                if (onVigilar != null) TextButton(onClick = onVigilar) { Text("Vigilar entidad") }
             }
         }
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+// ------------------------------------------------------------------
+// Entidades vigiladas y ahorro de batería
+// ------------------------------------------------------------------
+
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun PantallaEntidades(
+    almacen: Almacen,
+    version: Int,
     vigilancias: List<Vigilancia>,
     convocatorias: List<Convocatoria>,
-    intervalo: Int,
+    onEditar: (Vigilancia) -> Unit,
     onEliminar: (String) -> Unit,
-    onIntervalo: (Int) -> Unit,
 ) {
     val ctx = LocalContext.current
     var aBorrar by remember { mutableStateOf<Vigilancia?>(null) }
+
+    val intervalo = remember(version) { almacen.intervaloMin() }
+    val horarioActivo = remember(version) { almacen.horarioActivo() }
+    val dias = remember(version) { almacen.dias() }
+    val desde = remember(version) { almacen.horaDesde() }
+    val hasta = remember(version) { almacen.horaHasta() }
+    val bateria = remember(version) { almacen.pausarBateriaBaja() }
 
     LazyColumn(
         contentPadding = PaddingValues(start = 12.dp, end = 12.dp, top = 12.dp, bottom = 96.dp),
@@ -460,7 +675,7 @@ fun PantallaEntidades(
         }
         items(vigilancias, key = { it.id }) { v ->
             val n = convocatorias.count { it.vigilanciaId == v.id }
-            Card(Modifier.fillMaxWidth()) {
+            Card(Modifier.fillMaxWidth().clickable { onEditar(v) }) {
                 Row(Modifier.padding(start = 14.dp, top = 10.dp, bottom = 10.dp), verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f)) {
                         Text(v.entidad, fontWeight = FontWeight.Bold)
@@ -470,6 +685,9 @@ fun PantallaEntidades(
                             style = MaterialTheme.typography.bodySmall,
                         )
                         Text("$n vigente(s) ahora", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
+                    }
+                    IconButton(onClick = { onEditar(v) }) {
+                        Icon(Icons.Filled.Edit, contentDescription = "Editar")
                     }
                     IconButton(onClick = { aBorrar = v }) {
                         Icon(Icons.Filled.Delete, contentDescription = "Dejar de vigilar")
@@ -490,14 +708,52 @@ fun PantallaEntidades(
                 listOf(15, 30, 60, 120, 240).forEach { m ->
                     FilterChip(
                         selected = intervalo == m,
-                        onClick = { onIntervalo(m) },
+                        onClick = {
+                            almacen.setIntervaloMin(m)
+                            Programador.programar(ctx, reemplazar = true)
+                        },
                         label = { Text(if (m < 60) "$m min" else "${m / 60} h") },
                     )
                 }
             }
+
+            Spacer(Modifier.height(12.dp))
+            Text("Ahorro de batería", style = MaterialTheme.typography.titleSmall)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text("Revisar solo en horario", Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
+                Switch(checked = horarioActivo, onCheckedChange = { almacen.setHorarioActivo(it) })
+            }
+            if (horarioActivo) {
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    listOf("L", "M", "M", "J", "V", "S", "D").forEachIndexed { i, letra ->
+                        val dia = i + 1
+                        FilterChip(
+                            selected = dia in dias,
+                            onClick = { almacen.setDias(if (dia in dias) dias - dia else dias + dia) },
+                            label = { Text(letra) },
+                        )
+                    }
+                }
+                SelectorHora("Desde", desde) { h -> if (h < hasta) almacen.setHoras(h, hasta) }
+                SelectorHora("Hasta", hasta) { h -> if (h > desde) almacen.setHoras(desde, h) }
+                Text(
+                    "Fuera de ese horario la app no se conecta. Lo publicado de noche te llega en la primera revisión de la mañana.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            Spacer(Modifier.height(6.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text("Pausar con batería baja", Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
+                Switch(checked = bateria, onCheckedChange = {
+                    almacen.setPausarBateriaBaja(it)
+                    Programador.programar(ctx, reemplazar = true)
+                })
+            }
+            Spacer(Modifier.height(8.dp))
             Text(
-                "Android decide el momento exacto para ahorrar batería, así que la revisión puede retrasarse unos minutos. " +
-                    "Para que no la detenga, permite que la app funcione sin restricciones de batería:",
+                "Android decide el momento exacto de cada revisión para ahorrar batería. " +
+                    "Para que no la detenga, deja la app sin restricciones de batería:",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -523,20 +779,39 @@ fun PantallaEntidades(
     }
 }
 
+@Composable
+private fun SelectorHora(etiqueta: String, valor: Int, onCambio: (Int) -> Unit) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Text(etiqueta, Modifier.width(56.dp), style = MaterialTheme.typography.bodyMedium)
+        TextButton(onClick = { if (valor > 0) onCambio(valor - 1) }) { Text("−", style = MaterialTheme.typography.titleLarge) }
+        Text(hora(valor), fontWeight = FontWeight.Bold)
+        TextButton(onClick = { if (valor < 24) onCambio(valor + 1) }) { Text("+", style = MaterialTheme.typography.titleLarge) }
+    }
+}
+
+// ------------------------------------------------------------------
+// Agregar / editar entidad
+// ------------------------------------------------------------------
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DialogoEntidad(onCerrar: () -> Unit, onGuardar: (Vigilancia) -> Unit) {
+fun DialogoEntidad(
+    inicial: Vigilancia?,
+    textoInicial: String?,
+    onCerrar: () -> Unit,
+    onGuardar: (Vigilancia) -> Unit,
+) {
     val scope = rememberCoroutineScope()
-    var texto by remember { mutableStateOf("") }
-    var exacta by remember { mutableStateOf(false) }
-    var tipos by remember { mutableStateOf(setOf("O")) }
+    var texto by remember { mutableStateOf(inicial?.entidad ?: textoInicial ?: "") }
+    var exacta by remember { mutableStateOf(inicial?.exacta ?: (textoInicial != null)) }
+    var tipos by remember { mutableStateOf(inicial?.tipos ?: setOf("O")) }
     var sugerencias by remember { mutableStateOf<List<String>>(emptyList()) }
     var buscando by remember { mutableStateOf(false) }
     var aviso by remember { mutableStateOf<String?>(null) }
 
     AlertDialog(
         onDismissRequest = onCerrar,
-        title = { Text("Vigilar una entidad") },
+        title = { Text(if (inicial != null) "Editar entidad" else "Vigilar una entidad") },
         text = {
             Column(Modifier.verticalScroll(rememberScrollState())) {
                 OutlinedTextField(
@@ -602,7 +877,8 @@ fun DialogoEntidad(onCerrar: () -> Unit, onGuardar: (Vigilancia) -> Unit) {
                     }
                 }
                 Text(
-                    "Solo se muestran convocatorias en estado Vigente.",
+                    "Solo se muestran convocatorias en estado Vigente." +
+                        if (inicial != null) " Al guardar los cambios se recarga la lista de esta entidad sin enviar avisos." else "",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -611,7 +887,9 @@ fun DialogoEntidad(onCerrar: () -> Unit, onGuardar: (Vigilancia) -> Unit) {
         confirmButton = {
             TextButton(
                 enabled = texto.isNotBlank() && tipos.isNotEmpty(),
-                onClick = { onGuardar(Vigilancia(UUID.randomUUID().toString(), texto.trim(), exacta, tipos)) },
+                onClick = {
+                    onGuardar(Vigilancia(inicial?.id ?: UUID.randomUUID().toString(), texto.trim(), exacta, tipos))
+                },
             ) { Text("Guardar") }
         },
         dismissButton = { TextButton(onClick = onCerrar) { Text("Cancelar") } },

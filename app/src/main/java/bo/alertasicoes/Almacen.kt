@@ -27,6 +27,13 @@ class Almacen(ctx: Context) {
         guardarVigilancias(vigilancias() + v)
     }
 
+    /** Cambia las opciones de una entidad ya guardada; la próxima revisión la recarga sin avisar. */
+    fun actualizarVigilancia(v: Vigilancia) = synchronized(LOCK) {
+        guardarVigilancias(vigilancias().map { if (it.id == v.id) v else it })
+        guardarConvocatorias(convocatorias().filter { it.vigilanciaId != v.id })
+        prefs.edit().remove("init_${v.id}").apply()
+    }
+
     fun eliminarVigilancia(id: String) = synchronized(LOCK) {
         guardarVigilancias(vigilancias().filter { it.id != id })
         guardarConvocatorias(convocatorias().filter { it.vigilanciaId != id })
@@ -79,6 +86,21 @@ class Almacen(ctx: Context) {
         ed.apply()
     }
 
+    // ---------- Montos (sacados del Formulario 100) ----------
+
+    fun montos(): Map<String, String> {
+        val o = JSONObject(prefs.getString(K_MONTOS, null) ?: "{}")
+        val m = HashMap<String, String>()
+        o.keys().forEach { k -> m[k] = o.optString(k) }
+        return m
+    }
+
+    fun guardarMonto(cuce: String, monto: String) = synchronized(LOCK) {
+        val o = JSONObject(prefs.getString(K_MONTOS, null) ?: "{}")
+        o.put(cuce, monto)
+        prefs.edit().putString(K_MONTOS, o.toString()).apply()
+    }
+
     // ---------- Estado y ajustes ----------
 
     fun ultimaRevision(): Long = prefs.getLong(K_ULTIMO, 0L)
@@ -86,6 +108,29 @@ class Almacen(ctx: Context) {
 
     fun intervaloMin(): Int = prefs.getInt(K_INTERVALO, 30)
     fun setIntervaloMin(m: Int) = prefs.edit().putInt(K_INTERVALO, m).apply()
+
+    /** Revisar solo en ciertos días y horas (ahorro de batería). */
+    fun horarioActivo(): Boolean = prefs.getBoolean(K_HORARIO, true)
+    fun setHorarioActivo(b: Boolean) = prefs.edit().putBoolean(K_HORARIO, b).apply()
+
+    /** Días habilitados: 1 = lunes … 7 = domingo. */
+    fun dias(): Set<Int> = (prefs.getString(K_DIAS, null) ?: "12345").mapNotNull { it.digitToIntOrNull() }.toSet()
+    fun setDias(d: Set<Int>) = prefs.edit().putString(K_DIAS, d.sorted().joinToString("")).apply()
+
+    fun horaDesde(): Int = prefs.getInt(K_DESDE, 7)
+    fun horaHasta(): Int = prefs.getInt(K_HASTA, 20)
+    fun setHoras(desde: Int, hasta: Int) = prefs.edit().putInt(K_DESDE, desde).putInt(K_HASTA, hasta).apply()
+
+    fun pausarBateriaBaja(): Boolean = prefs.getBoolean(K_BATERIA, true)
+    fun setPausarBateriaBaja(b: Boolean) = prefs.edit().putBoolean(K_BATERIA, b).apply()
+
+    /** ¿Toca revisar ahora según el horario? */
+    fun dentroDeHorario(ahora: java.util.Calendar = java.util.Calendar.getInstance()): Boolean {
+        if (!horarioActivo()) return true
+        val dia = ((ahora.get(java.util.Calendar.DAY_OF_WEEK) + 5) % 7) + 1 // lunes = 1
+        val hora = ahora.get(java.util.Calendar.HOUR_OF_DAY)
+        return dia in dias() && hora >= horaDesde() && hora < horaHasta()
+    }
 
     companion object {
         private val LOCK = Any()
@@ -95,5 +140,11 @@ class Almacen(ctx: Context) {
         private const val K_ULTIMO = "ultima_revision"
         private const val K_ERROR = "ultimo_error"
         private const val K_INTERVALO = "intervalo_min"
+        private const val K_MONTOS = "montos"
+        private const val K_HORARIO = "horario_activo"
+        private const val K_DIAS = "horario_dias"
+        private const val K_DESDE = "horario_desde"
+        private const val K_HASTA = "horario_hasta"
+        private const val K_BATERIA = "pausar_bateria_baja"
     }
 }

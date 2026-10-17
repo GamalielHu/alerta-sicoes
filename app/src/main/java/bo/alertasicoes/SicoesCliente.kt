@@ -89,18 +89,18 @@ class SicoesCliente {
     private class Pagina(val total: Int, val filas: List<FilaSicoes>)
 
     /** Devuelve null si el SICOES no aceptó la sesión (hay que reabrirla). */
-    private fun pedirPagina(entidad: String, tipos: Set<String>, pagina: Int): Pagina? {
+    private fun pedirPagina(entidad: String, objeto: String, soloVigentes: Boolean, tipos: Set<String>, pagina: Int): Pagina? {
         val tk = token ?: return null
         val form = FormBody.Builder()
             .add("token", tk)
             .add("entidad", entidad)
-            .add("objetoContrato", "")
+            .add("objetoContrato", objeto)
             .add("publicacionDesde", "")
             .add("publicacionHasta", "")
             .add("presentacionPropuestasDesde", "")
             .add("presentacionPropuestasHasta", "")
         for (i in 1..6) form.add("cuce$i", "")
-        form.add("r1", "11") // 11 = Vigente
+        form.add("r1", if (soloVigentes) "11" else "") // 11 = Vigente, vacío = todos
             .add("subasta", "")
         if ("B" in tipos) form.add("bienes", "B")
         if ("O" in tipos) form.add("obras", "O")
@@ -158,19 +158,26 @@ class SicoesCliente {
     }
 
     /**
-     * Todas las convocatorias VIGENTES cuya entidad contiene [entidad],
-     * de los tipos indicados (O, B, S, C).
+     * Convocatorias cuya entidad contiene [entidad] y cuyo objeto contiene [objeto],
+     * de los tipos indicados (O, B, S, C). Por defecto solo las vigentes.
      */
-    fun buscar(entidad: String, tipos: Set<String>, maxPaginas: Int = 30): List<FilaSicoes> {
+    fun buscar(
+        entidad: String,
+        tipos: Set<String>,
+        objeto: String = "",
+        soloVigentes: Boolean = true,
+        maxPaginas: Int = 30,
+    ): List<FilaSicoes> {
         val texto = quitarTildes(entidad.trim())
+        val obj = quitarTildes(objeto.trim())
         if (token == null) abrirSesion()
         val res = ArrayList<FilaSicoes>()
         var pagina = 1
         while (true) {
-            var p = pedirPagina(texto, tipos, pagina)
+            var p = pedirPagina(texto, obj, soloVigentes, tipos, pagina)
             if (p == null) {
                 abrirSesion()
-                p = pedirPagina(texto, tipos, pagina)
+                p = pedirPagina(texto, obj, soloVigentes, tipos, pagina)
                     ?: throw IOException("El SICOES rechazó la consulta; se intentará en la próxima revisión")
             }
             res += p.filas

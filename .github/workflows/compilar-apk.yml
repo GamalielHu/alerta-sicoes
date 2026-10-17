@@ -30,10 +30,22 @@ jobs:
           grep -n "version" app/build.gradle.kts
 
       - name: Compilar APK
+        shell: bash
         run: |
           chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon --stacktrace
+          ./gradlew assembleDebug --no-daemon --stacktrace 2>&1 | tee build.log
+          test ${PIPESTATUS[0]} -eq 0
           cp app/build/outputs/apk/debug/app-debug.apk AlertaSicoes.apk
+
+      - name: Guardar errores de compilación
+        if: failure()
+        run: |
+          mkdir -p /tmp/reg && cd /tmp/reg
+          grep -E "^e: |error:|FAILURE|What went wrong|Exception" -A3 "$GITHUB_WORKSPACE/build.log" | head -300 > errores.txt || true
+          tail -150 "$GITHUB_WORKSPACE/build.log" > final.txt || true
+          git init -q -b registro && git config user.name GamalielHu && git config user.email jhuasco8@gmail.com
+          git add -A && git commit -qm "errores ${{ github.run_number }}"
+          git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" registro
 
       - uses: actions/upload-artifact@v4
         with:

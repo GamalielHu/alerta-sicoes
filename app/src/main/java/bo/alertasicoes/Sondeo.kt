@@ -15,6 +15,8 @@ import java.util.concurrent.TimeUnit
 /** Tarea que Android ejecuta en segundo plano cada cierto tiempo. */
 class SondeoWorker(ctx: Context, params: WorkerParameters) : CoroutineWorker(ctx, params) {
     override suspend fun doWork(): Result {
+        // Fuera del horario elegido no se conecta a internet: solo se vuelve a dormir.
+        if (!Almacen(applicationContext).dentroDeHorario()) return Result.success()
         Monitor.revisar(applicationContext)
         return Result.success()
     }
@@ -24,10 +26,15 @@ object Programador {
     private const val NOMBRE = "sondeo_sicoes"
 
     /** Android no permite menos de 15 minutos entre revisiones automáticas. */
-    fun programar(ctx: Context, minutos: Int, reemplazar: Boolean) {
+    fun programar(ctx: Context, reemplazar: Boolean) {
+        val almacen = Almacen(ctx)
+        val minutos = almacen.intervaloMin()
         val req = PeriodicWorkRequestBuilder<SondeoWorker>(minutos.coerceAtLeast(15).toLong(), TimeUnit.MINUTES)
             .setConstraints(
-                Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build()
+                Constraints.Builder()
+                    .setRequiredNetworkType(NetworkType.CONNECTED)
+                    .setRequiresBatteryNotLow(almacen.pausarBateriaBaja())
+                    .build()
             )
             .setBackoffCriteria(BackoffPolicy.LINEAR, 5, TimeUnit.MINUTES)
             .build()
@@ -43,6 +50,6 @@ class App : Application() {
     override fun onCreate() {
         super.onCreate()
         Notificador.crearCanal(this)
-        Programador.programar(this, Almacen(this).intervaloMin(), reemplazar = false)
+        Programador.programar(this, reemplazar = false)
     }
 }
