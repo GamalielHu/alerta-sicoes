@@ -16,6 +16,6 @@ jobs:
       - name: Guardar resultado
         run: |
           git config user.name "GamalielHu"; git config user.email "jhuasco8@gmail.com"
-          git add -A out || true
+          git add -A out out2 || true
           git commit -m "resultado sondeo [skip ci]" || true
           git push || true
