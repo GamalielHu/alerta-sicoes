@@ -1,0 +1,21 @@
+name: Sondeo SICOES
+on:
+  push:
+    branches: [sondeo]
+permissions:
+  contents: write
+jobs:
+  sondeo:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: pip install requests beautifulsoup4
+      - run: python sondeo.py || true
+      - run: python sondeo2.py || true
+        if: hashFiles('sondeo2.py') != ''
+      - name: Guardar resultado
+        run: |
+          git config user.name "GamalielHu"; git config user.email "jhuasco8@gmail.com"
+          git add -A out || true
+          git commit -m "resultado sondeo [skip ci]" || true
+          git push || true
