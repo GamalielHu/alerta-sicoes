@@ -24,8 +24,6 @@ jobs:
           distribution: temurin
           java-version: "17"
 
-      - uses: android-actions/setup-android@v3
-
       - name: Número de versión
         run: |
           sed -i "s/versionCode = 1$/versionCode = ${{ github.run_number }}/; s/versionName = \"1.0\"/versionName = \"1.${{ github.run_number }}\"/" app/build.gradle.kts
