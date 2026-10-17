@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>SICOES</title>
+        <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1" />
+        <link rel="icon" type="image/x-icon" href="/favicon.ico">
+        <link href="/css/external/bootstrap/bootstrap.min.css" rel="stylesheet" type="text/css" media="all" />
+        <!-- Template -->
+        <link href="/css/portal.css" rel="stylesheet" type="text/css" media="all" />
+        <link href="/css/portal-admin.css" rel="stylesheet" type="text/css" media="all" />
+        <!-- DataTables -->
+        <link href="/css/external/datatables/dataTables.bootstrap.css" rel="stylesheet">
+        <!--iCheck for checkboxes and radio inputs-->
+        <link rel="stylesheet" href="/css/adminTemplate/iCheck/all.css">
+        <!--Datepicker-->
+        <link rel="stylesheet" href="/css/external/datepicker/datepicker.css">
+        <!--Nprogress-->
+        <link rel="stylesheet" href="/css/external/nprogress/nprogress.css">
+        <!--Download Server-->
+        <link rel="stylesheet" href="/lib/download/downloadserver.css">
+        <!--captcha Google Verificacion de 2 pasos -->
+        <!-- js -->
+        <script src="/lib/js/external/jquery/jquery.min.js?v=0.0.3"></script>
+        <script src="/lib/js/external/auto/jquery.disable.autocomplete.min.js?v=0.0.3"></script>
+        <script src="/lib/js/app/portal-admin.js?v=0.0.3"></script>
+        <script src="https://www.google.com/recaptcha/api.js?render=0x4AAAAAABjOuoSrQDMK9Yq2"></script>
+    </head>
+    <body>
+        <!-- header -->
+        <nav class="navbar-inverse navbar-fixed-top">
+            <div class="container">
+                <div style="padding: 0 1em;">
+                    <div class="navbar-header">
+                        <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
+                            <span class="sr-only">Toggle navigation</span>
+                            <span class="icon-bar"></span>
+                            <span class="icon-bar"></span>
+                            <span class="icon-bar"></span>
+                        </button>
+                        <div class="body-top-left"> </div>
+                    </div>
+                    <div id="navbar" class="collapse navbar-collapse">
+                        <ul class="nav navbar-nav navbar-right menu-cabecera">
+                            <li class="active"><a href="#" onclick="irLink('/portal/index.php')">Inicio</a></li>
+                            <li class="submenu ">
+                                <span class="dropdown nombreMenu">Contrataciones<div class="caret"></div></span>
+                                <ul class="child menu">
+                                    <li>
+                                        <span class="dropdown">B&uacute;squeda<div class="caret"></div></span>
+                                        <ul class="deep-child menu">
+                                            <li><a href="#" onclick="irLink('/portal/contrataciones/busqueda/convocatorias.php?tipo=convNacional')">Convocatorias</a></li>
+                                            <li><a href="#" onclick="irLink('/portal/contrataciones/busqueda/convocatorias.php?tipo=convInternacional')">Convocatorias Internacionales</a></li>
+                                            <li><a href="#" onclick="irLink('/portal/contrataciones/busqueda/contResueltos.php')">Contratos Resueltos</a></li>
+                                            <li><a href="#" onclick="irLink('/portal/contrataciones/busqueda/desistimientoCont.php')">Desistimiento a la formalización</a></li>
+                                            <div class="bf"></div>
+                                         </ul>
+                                    </li>
+                                    <li><a href="#" onclick="irLink('/portal/contrataciones/pac/pac.php')">Programa Anual de Contrataciones</a></li>
+                                    <li>
+                                        <span class="dropdown">Otras publicaciones<div class="caret"></div></span>
+                                        <ul class="deep-child menu">
+                                            <li><a href="#" onclick="irLink('/portal/contrataciones/otrasPublicaciones/requerimientoPersonal.php')">Requerimiento de Personal</a></li>
+                                            <li><a href="#" onclick="irLink('/portal/contrataciones/otrasPublicaciones/convDisposicionBienes.php')">Arrendamiento, remate y otros</a></li>
+                                            <li><a href="#" onclick="irLink('/portal/contrataciones/otrasPublicaciones/contOtrosPaises/contOtrosPaises.php')">Contrataciones de otros pa&iacute;ses</a></li>
+                                            <div class="bf"></div>
+                                         </ul>
+                                    </li>
+                                    <li><a href="#" onclick="irLink('/portal/formularios/formularios.php')">Formularios</a></li>
+                                    <div class="bf"></div>
+                                </ul>
+                            </li>
+                            <li class="submenu">
+                                <a href="https://sigep.gob.bo/procesoCompra/#/disposicionbienes/listaConvocatorias" target="_blank">Destino de Bienes</a>
+                            </li>
+
+                            <li class="">
+                                <a href="#" onclick="irLink('/portal/rupe/guiaProveedores.php')" class="nombreMenu">RUPE</a>
+                            </li>
+                            <li class="submenu ">
+                                <span class="dropdown nombreMenu">Normativa<div class="caret"></div></span>
+                                <ul class="child menu">
+                                    <li><a href="#" onclick="irLink('/portal/normativa/decretos.php')">Decretos, reglamentos y modelos</a></li>
+                                    <div class="bf"></div>
+                                </ul>
+                            </li>
+                            <li class="submenu ">
+                                <span class="dropdown nombreMenu">Incumplidos<div class="caret"></div></span>
+                                <ul class="child menu">
+                                    <li><a href="#" onclick="irLink('/portal/incumplidos/incPacEstProceso.php?tipo=estadoProceso')">Entidades inhabilitadas</a></li>
+                                    <li><a href="#" onclick="irLink('/portal/incumplidos/entidadesExcepcion.php')">Entidades con excepci&oacute;n para el registro</a></li>
+                                    <div class="bf"></div>
+                                </ul>
+                            </li>
+                            <li class="submenu ">
+                                <span class="dropdown nombreMenu">Clasificadores<div class="caret"></div></span>
+                                <ul class="child menu">
+                                    <li><a href="#" onclick="irLink('/portal/clasificadores/institucional.php')">Institucional</a></li>
+                                    <li><a href="#" onclick="irLink('/portal/clasificadores/partidas.php')">Partidas</a></li>
+                                    <li><a href="#" onclick="irLink('/portal/clasificadores/organismoFinanciadores.php')">Organismos Financiadores</a></li>
+                                    <li><a href="#" onclick="irLink('/portal/clasificadores/usuarios.php')">Usuarios Habilitados</a></li>
+                                    <div class="bf"></div>
+                                </ul>
+                            </li>
+                            <li class="submenu ">
+                                <span class="dropdown nombreMenu">Compro Hecho en Bolivia<div class="caret"></div></span>
+                                <ul class="child menu">
+                                    <li><a href="https://sigep.gob.bo/catBienes/#/catele/consultaCatalogoElectronico" target="_blank">Cat&aacute;logo Electr&oacute;nico CHB</a></li>
+                                    <li><a href="https://sigep.gob.bo/mercadoVirtual/#/home/CCHB" target="_blank">Mercado Virtual CHB</a></li>
+                                    <li><a href="#" onclick="irLink('/portal/contrataciones/busqueda/procesosNoFicha.php?tipo=noFicha')">Procesos sin Ficha T&eacute;cnica</a></li>
+                                     <div class="bf"></div>
+                                </ul>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </nav>
+        <!-- content -->
+        <div class="body-content">
+            <div class="container">
+                <div class="navigation">
+                    <nav class="navbar navbar-default">
+                        <span class="title">SISTEMA DE CONTRATACIONES ESTATALES</span>
+                        <div class="social pull-right">
+                            <a href="#" onclick="irLink('/portal/inicio/informacion.php')" class="servc-grid pull-left " data-toggle="tooltip" data-placement="bottom" title="Inf. Institucional">
+                                <div class="servc-grid-left">
+                                    <span class="glyphicon info">i</span>
+                                </div>
+                            </a>
+                            <a href="#" onclick="irLink('/portal/inicio/contactenos.php')" class="servc-grid pull-left "  data-toggle="tooltip" data-placement="bottom" title="Cont&aacute;ctenos">
+                                <div class="servc-grid-left">
+                                    <span class="glyphicon glyphicon-earphone"></span>
+                                </div>
+                            </a>
+                        </div>
+                    </nav>
+                </div>
+                <div class="banner-bottom-grids"><div class="row">
+    <div class="col-md-8 banner-bottom-grid-left">
+        <h6 style="margin-bottom: -10px;">Contrataciones</h6>
+                    <a href="https://sigep.gob.bo/mercadoVirtual/#/home/CCHB" class="col-xs-6 servicioSICOES servicioNuevo" target="_blank">
+                <div class="servc-grid-left" style="position: relative; left: 0; top: 0;">
+                    <span class="glyphicon glyphicon-shopping-cart"></span>
+                    <img  class='shb'/>
+                </div>
+                <div class="servc-grid-right blog">
+                    <h4>Mercado Virtual</h4>
+                    <h4>Compro Hecho en Bolivia</h4>
+                    <p>Productos Hechos en Bolivia</p>
+                </div>
+            </a>
+                <a href="https://sigep.gob.bo/mercadoVirtual" class="col-xs-6 servc-grid servicioSICOES" target="_blank">
+            <div class="servc-grid-left">
+                <span class="glyphicon glyphicon-shopping-cart"></span>
+            </div>
+            <div class="servc-grid-right blog">
+                <h4>Mercado Virtual</h4>
+                <p>Conoce las ofertas de productos de los proveedores del Estado</p>
+                <br>
+            </div>
+        </a>
+        <a onclick="irLink('/portal/contrataciones/busqueda/convocatorias.php?tipo=convNacional')"
+           href="#" class="col-md-6 col-xs-6 col-sm-6 servc-grid servicioSICOES"
+           data-toggle="popover" title="Convocatorias" data-content="B&uacute;squeda de Procesos de Contrataci&oacute;n"
+           data-placement="bottom" data-trigger="hover">
+            <div class="servc-grid-left">
+                <span class="glyphicon glyphicon-duplicate"></span>
+            </div>
+            <div class="servc-grid-right blog">
+                <h4>Convocatorias</h4>
+                <div class="titulo hidden">B&uacute;squeda de Procesos de Contrataci&oacute;n</div>
+                <p>B&uacute;squeda de Procesos de Contrataci&oacute;n.</p>
+            </div>
+        </a>
+        <a href="#" onclick="irLink('/portal/contrataciones/busqueda/convocatorias.php?tipo=convNacional&subasta=S')"
+           class="col-xs-6 servc-grid servicioSICOES">
+            <div class="servc-grid-left">
+                <span class="glyphicon glyphicon-duplicate"></span>
+            </div>
+            <div class="servc-grid-right blog">
+                <h4>Subasta Electr&oacute;nica</h4>
+                <p>B&uacute;squeda de Procesos a trav&eacute;s de Subasta Electr&oacute;nica</p>
+            </div>
+        </a>                
+        <a  style="display: none" href="#" onclick="irLink('/portal/normativa/preguntas.php')"
+            class="col-md-6 col-xs-12 col-sm-6 servc-grid servicioSICOES" data-toggle="popover" title="Preguntas Frecuentes" data-content="Aqu&iacute; te ofrecemos y aclaramos las dudas respecto al Sistema" data-placement="bottom" data-trigger="hover">
+            <div class="servc-grid-left">
+                <span class="glyphicon glyphicon-wrench"></span>
+            </div>
+            <div class="servc-grid-right">
+                <h4>Preguntas Frecuentes</h4>
+                <div class="titulo hidden">Aqu&iacute; te ofrecemos y aclaramos las dudas respecto al Sistema</div>
+                <p>Aqu&iacute; te ofrecemos y aclaramos las dudas respecto al Sistema.</p>
+            </div>
+        </a>        
+        <a href="#" onclick="irLink('/portal/rupe/guiaProveedores.php')"
+           class="col-md-6 col-xs-12 col-sm-6 servc-grid servicioSICOES" data-toggle="popover"
+           title="Gu&iacute;a de proveedores" data-content="Vea quienes son los proveedores inscritos" data-placement="bottom" data-trigger="hover">
+            <div class="servc-grid-left">
+                <span class="glyphicon glyphicon-th-list" aria-hidden="true"></span>
+            </div>
+            <div class="servc-grid-right">
+                <h4>Gu&iacute;a de proveedores</h4>
+                <div class="titulo hidden">Vea quienes son los proveedores inscritos</div>
+                <p>Vea quienes son los proveedores inscritos.</p>
+            </div>
+        </a>
+        <a href="#" onclick="irLink('/portal/formularios/formularios.php')" class="col-md-6 col-xs-12 col-sm-6 servc-grid servicioSICOES"
+           data-toggle="popover" title="Formularios" data-content="Aqu&iacute; encontrar&aacute;s los formularios necesarios para interactuar con el SICOES"
+           data-placement="bottom" data-trigger="hover">
+            <div class="servc-grid-left">
+                <span class="glyphicon glyphicon-edit" aria-hidden="true"></span>
+            </div>
+            <div class="servc-grid-right">
+                <h4>Formularios</h4>
+                <div class="titulo hidden">Aqu&iacute; encontrar&aacute;s los formularios necesarios para interactuar con el SICOES</div>
+                <p>Aqu&iacute; encontrar&aacute;s los formularios necesarios para interactuar con el SICOES.</p>
+            </div>
+        </a>
+            <a href="#" onclick="irLink('/portal/normativa/decretos.php')"
+               class="col-md-6 col-xs-12 col-sm-6 servc-grid servicioSICOES" data-toggle="popover" title="Decretos y Reglamentos" data-content="Normas B&aacute;sicas del Sistema de Administraci&oacute;n de Bienes y Servicios - D.S. N&deg; 0181" data-placement="bottom" data-trigger="hover">
+            <div class="servc-grid-left">
+                <span class="glyphicon glyphicon-inbox" aria-hidden="true"></span>
+            </div>
+            <div class="servc-grid-right">
+                <h4>Decretos y Reglamentos</h4>
+                <div class="titulo hidden">Normas B&aacute;sicas del Sistema de Administraci&oacute;n de Bienes y Servicios - D.S. N&deg; 0181</div>
+                <p>Normas B&aacute;sicas del Sistema de Administraci&oacute;n de Bienes y Servicios - D.S. N&deg; 0181.</p>
+            </div>
+        </a>       
+        <div class="clearfix"> </div>
+        <!--nsilva cambio de clase-->
+        <br>
+                <h6 style="margin-bottom: -10px;">Destino de Bienes</h6>
+
+
+        <a href="https://sigep.gob.bo/procesoCompra/#/disposicionbienes/listaConvocatorias" class="col-md-6 col-xs-12 col-sm-6 servc-grid servicioSICOES servicioNuevo" data-toggle="popover" title="Destino de Bienes dados de baja" data-content="B&uacute;squeda de bienes publicados por las entidades del estado de acuerdo al - D.S. N&deg; 4866 " data-placement="bottom" data-trigger="hover" target="_blank">
+            <div class="servc-grid-left">
+                <span class="glyphicon glyphicon-check" aria-hidden="true"></span>
+            </div>
+            <div class="servc-grid-right">
+                <h4>Destino de Bienes</h4>
+                <h4>dados de baja</h4>
+                <p>Conoce los bienes publicados por las Entidades.</p>
+            </div>
+        </a>
+                <div class="clearfix"> </div>
+        <div id="comunicados" class="banner-bottom-grid-right-grid1">
+            <h6>Comunicados</h6>
+            <table class='comunicados'>
+                <tbody class="row"></tbody>
+            </table>
+        </div>
+    </div>
+    <div class="col-md-4 banner-bottom-grid-right">
+        <div class="col-lg-12 col-md-12 col-sm-6">
+            <div class="ir-login">
+                <span class="glyphicon glyphicon-user"></span>
+                <div class="content">
+                    <h4>
+                        <span class="modal-login" data-tipo="rupe">RUPE</span>
+                        <span class="modal-login link pull-right" data-toggle="tooltip" title="Iniciar sesi&oacute;n" data-tipo="rupe"></span>
+                    </h4>
+                    Ingreso al Registro &Uacute;nico de Proveedores del Estado
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-12 col-md-12 col-sm-6">
+            <div class="ir-login">
+                <span class="glyphicon glyphicon-briefcase"></span>
+                <div class="content">
+                    <h4>
+                        <span class="modal-login" data-tipo="entidad">ENTIDADES</span>
+                        <span class="modal-login link pull-right" data-toggle="tooltip" title="Iniciar sesi&oacute;n" data-tipo="entidad"></span>
+                    </h4>
+                    Registro de Usuario para el Ingreso a Entidades
+                </div>
+            </div>
+        </div>        
+        <div class="col-lg-12 col-md-12 col-sm-6">
+            <a href="https://sigep.gob.bo/rsbiblioteca/#/portalHome">
+            <div class="ir-login last">
+                    <span class="digital"></span>
+                <div class="content">
+                    <h4>
+                        <span class="modal-login" data-tipo="entidad">BIBLIOTECA<br>DIGITAL</span>
+                        <span class="modal-login link pull-right" data-toggle="tooltip" title="Biblioteca digital"></span>
+                    </h4>
+                    Material did&aacute;ctico de consulta para los usuarios
+                </div>
+            </div>
+            </a>
+        </div>
+        <div class="clearfix"> </div>
+        <div class="banner-bottom-grid-right-grid1">
+            <h3>Contrataciones Vigentes</h3>
+            <div class="contrataciones row">
+                
+                <a href="#" onclick="irLink('/portal/contrataciones/busqueda/convocatorias.php?tipo=convNacional&tipoContratacion=B')"
+                   class="col-lg-12 col-md-12 col-sm-6 col-xs-12">
+                    <div class="estadisticas">
+                        <span class="bienes"></span>
+                    </div>
+                    <div class="descripcion">
+                        <b>Bienes</b><br>1249                    </div>
+                </a>
+                <a href="#" onclick="irLink('/portal/contrataciones/busqueda/convocatorias.php?tipo=convNacional&tipoContratacion=O')"
+                   class="col-lg-12 col-md-12 col-sm-6 col-xs-12">
+                    <div class="estadisticas">
+                        <span class="obras"></span>
+                    </div>
+                    <div class="descripcion">
+                        <b>Obras</b><br>405                    </div>
+                </a>
+                <a href="#" onclick="irLink('/portal/contrataciones/busqueda/convocatorias.php?tipo=convNacional&tipoContratacion=S')"
+                   class="col-lg-12 col-md-12 col-sm-6 col-xs-12">
+                    <div class="estadisticas">
+                        <span class="servicios"></span>
+                    </div>
+                    <div class="descripcion">
+                        <b>Servicios Generales</b><br>242                    </div>
+                </a>
+                <a href="#" onclick="irLink('/portal/contrataciones/busqueda/convocatorias.php?tipo=convNacional&tipoContratacion=C')"
+                   class="col-lg-12 col-md-12 col-sm-6 col-xs-12">
+                    <div class="estadisticas">
+                        <span class="consultoria"></span>
+                    </div>
+                    <div class="descripcion">
+                        <b>Servicios de Consultor&iacute;a</b><br>159                    </div>
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="clearfix"></div>
+<input type="hidden" id="rutaSigep" value="https://sigep.gob.bo">
+<input type="hidden" id="nuevoLoginEntidades" value="S">
+<input id="token" type="hidden" name="token" value="25319acff5d42e8e32d7123a09b6ecc954a1fde1ab31be1fa85c626adc6e39a4">
+<div id="modalLogin" class="modal fade login" keyboard="false", backdrop="static">
+    <div class="modal-dialog modal-sm">
+		<div class="modal-content">
+		    <div class="modal-header">
+		        <button type="button" class="close" data-dismiss="modal">
+		        	<span >&times;</span>
+		        </button>
+		        <h4 class="modal-title"></h4>
+		    </div>
+			<div class="modal-body row"  id="opcionesLogin">
+
+				<a class="opcion-uno col-xs-10  col-xs-offset-1 servc-grid servicioSICOES2">
+					<div class="servc-grid-left">
+						<span class="glyphicon glyphicon-user"></span>
+					</div>
+					<div class="servc-grid-right">
+						<h4 ></h4>
+						<p ></p>
+					</div>
+				</a>
+				<a class="opcion-dos col-xs-10 col-xs-offset-1 servc-grid servicioSICOES2 servicioNuevo"  >
+					<div class="servc-grid-left">
+						<span class="glyphicon glyphicon-file"></span>
+						<img  class='shb'/>
+					</div>
+					<div class="servc-grid-right">
+						<h4 ></h4>
+						<p ></p>
+					</div>
+				</a>
+			</div>
+
+			<div class="modal-body">
+
+				<form class="form-login" method="POST">
+					<div class="page-header" style="margin-top: 0">
+						<label>Compras:&nbsp&nbsp&nbsp&nbsp&nbsp</label>
+						<label class="radio-inline row">
+							<input type="radio" name="r1" class="minimal" value="11" checked> Mayores
+						</label>
+						<label class="radio-inline">
+							<input type="radio" name="r1" class="minimal" value=""> Menores
+						</label>
+					</div>
+					<div class="form-group soloEntidad">
+						<label>Usuario</label>
+						<input name="login" type="text" class="form-control usuario" required="">
+					</div>
+					<div class="form-group soloEntidad">
+						<label>Contrase&#241;a</label>
+						<input name="password" type="password" class="form-control password" required="">
+					</div>
+					<div class="form-group soloEntidad" id="captcha">
+						<label class="row col-xs-12">Inserte el c&oacute;digo de la imagen</label>
+						<input type="text" maxlength="5" size="7" name="captcha" class="form-control captcha uppercap" autocomplete="off" required>
+						<img id="captcha-image" src='/lib/php/captcha/captcha8.php' width="126" height="34">
+
+						<span class="glyphicon glyphicon-refresh" onclick="refreshCaptcha()"></span>
+					</div>
+
+					<div class="row checkbox">
+						<div class="col-md-6">
+							<a href="https://sigep.gob.bo/rsseguridad/login.html" onclick="irLink123('/rsseguridad/login.html')"
+								class="col-md-6 col-xs-12 col-sm-6 servc-grid" data-toggle="popover" data-placement="bottom" data-trigger="hover">
+								<div class="servc-grid-left">
+									<span class="glyphicon glyphicon-user" aria-hidden="true"></span>
+								</div>
+								<div class="servc-grid-right" style="margin-top: 25px;">
+									<h4>Ingresar</h4>
+								</div>
+							</a>
+						</div>
+						<div class="col-md-6">
+							<div class="checkbox">
+								<a href="#" class="login-rupe" data-tipo="reactivar">
+									<span class="glyphicon glyphicon-repeat"></span> Reactivar RUPE
+								</a>
+							</div>
+							<div class="checkbox">
+								<a href="#" class="login-rupe" data-tipo="registrarme">
+									<span class="glyphicon glyphicon-edit" ></span> Registrarme
+								</a>
+							</div>
+							<div class="checkbox">
+								<a href="#" class="login-rupe" data-tipo="olvido">
+									<span class="glyphicon glyphicon-question-sign"></span> Regenerar Contrase&#241;a
+								</a>
+							</div>
+						</div>
+					</div>
+
+					<div class="mail-grid-left soloEntidad">
+						<input class="btn" type="submit" value="Ingresar">
+					</div>
+					<div class="clearfix"></div>
+
+				</form>
+				
+	      	</div>
+		</div>
+	</div>
+</div>
+<div id="modalCambioContrasenia" class="modal fade login">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+        <h4 class="modal-title" align="center">Cambio de contrase&ntilde;a - Proveedores RUPE</h4>
+      </div>
+      <div class="modal-body">
+        <iframe src="/portal/docs/cambioContraseniaRupe.pdf" frameborder="0"></iframe>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+	function refreshCaptcha(){
+		document.querySelector("#captcha-image").src = '/lib/php/captcha/captcha8.php?' + Date.now();
+	}
+</script><div id="modalComunicados" class="modal fade login">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+        <h4 class="modal-title" align="center">
+          <div class="tituloInicio">COMUNICADOS</div>
+          <div class="tituloCom">
+            <span class="titulo"></span>
+            <br>
+            Fecha de publicaci&oacute;n: <span class="fecha"></span>
+          </div>
+        </h4>
+      </div>
+      <div class="modal-body" align="justify">
+        <div class="container-fluid"></div>
+      </div>
+    </div>
+  </div>
+</div><div class="modal fade" id="modalEstadisticas">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-body">
+        <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+        <div class="img-responsive"></div>
+      </div>
+    </div>
+  </div>
+</div>
+				</div>
+			</div>
+			<!-- footer -->
+            <div class="footer" >
+                <div class="container">
+                    <div class="row">
+                        <div class="col-lg-6" style="text-align: left">
+                            <p><span class="glyphicon glyphicon-home"></span><strong>&nbsp;Dirección:</strong> Edif. Contraloría General del
+                                Estado, Piso 7, Calle Colón, esq. Indaburo, La Paz, Bolivia</p>
+                            <p><span class="glyphicon glyphicon-earphone"></span><strong>&nbsp;&nbsp;Línea Gratuita:</strong> 800-10-6337</p>
+                            <p><span class="glyphicon glyphicon-phone-alt"></span><strong> Teléfono:</strong> (591-2) 2177300</p>
+                        </div>
+                        <div class="col-lg-4">
+                            <p><strong>HORARIOS DE ATENCIÓN<br>Lunes a Viernes</strong></p>
+                            <div class="col-lg-12">
+                                <p>De 8:30 a 16:30</p>
+                            </div>
+                        </div>
+                        <div class="col-lg-2">
+                            <p><strong>REDES SOCIALES</strong></p>
+                            <div>
+                                <div class="col-lg-6">
+                                    <a href="https://www.facebook.com/SicoesBo">
+                                        <span class="facebook"></span>
+                                    </a>
+                                </div>
+                                <div class="col-lg-6">
+                                    <a href="https://www.youtube.com/@SicoesBol">
+                                        <span class="youtube"></span>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        <body style="margin: 0; padding: 0;">
+        <div style="width: 100%; text-align: center;">
+            <div style="text-align: right; margin-right: 10px;">
+                <strong>SICOES 1.6.0.8.0.1</strong>
+            </div>
+            <div style="display: flex; justify-content: center; align-items: center;">
+                <img src="/img/portal/portadaPresidencia.png" alt="Portada Presidencia"
+                     style="max-height: 90px; width: auto; max-width: 100%; display: block; margin: 0; padding: 0;">
+            </div>
+        </div>
+        </body>
+        <script src="/lib/download/developer_console.min.js?v=0.0.3"></script>
+		<!-- js -->
+		<script src="/lib/js/external/bootstrap/bootstrap.min.js?v=0.0.3"></script>
+		<!-- Highcharts -->
+		<script src="/lib/js/external/Highcharts/highcharts.js?v=0.0.3"></script>
+		<script src="/lib/js/external/Highcharts/highcharts-3d.js?v=0.0.3"></script>
+		<script src="/lib/js/external/Highcharts/exporting.js?v=0.0.3"></script>
+		<script src="/lib/js/external/Highcharts/drilldown.js?v=0.0.3"></script>
+		<!-- DataTables -->
+		<script src="/lib/js/external/datatables/jquery.dataTables.min.js?v=0.0.3"></script>
+		<script src="/lib/js/external/datatables/dataTables.bootstrap.js?v=0.0.3"></script>
+		<!-- iCheck 1.0.1 -->
+		<script src="/lib/js/external/adminTemplate/icheck.min.js?v=0.0.3"></script>
+		<!-- Datepicker -->
+		<script src="/lib/js/external/datepicker/bootstrap-datepicker.js?v=0.0.3"></script>
+		<script src="/lib/js/external/datepicker/bootstrap-datepicker.es.js?v=0.0.3" charset="UTF-8"></script>
+		<!-- Nprogress -->
+		<script src="/lib/js/external/nprogress/nprogress.js?v=0.0.3"></script>
+		<!-- Template -->
+		<script src="/lib/js/app/comun.js?v=0.0.3"></script><!--nsilva cambio de orden de script-->
+		<script type="text/javascript" src="/lib/js/external/portal/move-top.js?v=0.0.3"></script>
+		<script type="text/javascript" src="/lib/js/external/portal/easing.js?v=0.0.3"></script>
+		<script type="text/javascript" src="/lib/js/app/portal/portal.js?v=0.0.3"></script>
+		<script src="/lib/js/app/portal/busqueda.js?v=0.0.3"></script>
+		<script src="/lib/js/app/portal/contrataciones.js?v=0.0.3"></script>
+		<script src="/lib/js/app/portal/incumplidos.js?v=0.0.3"></script>
+		<script src="/lib/js/app/portal/clasificadores.js?v=0.0.3"></script>
+		<script src="/lib/js/app/portal/normativas/normativas.js?v=0.0.3"></script>
+		<script src="/lib/js/app/portal/comunicados.js?v=0.0.3"></script>
+		<script src="/lib/js/app/portal/estadisticas.js?v=0.0.3"></script>
+		<!--Downloads-->
+		<script src="/lib/download/downloadserpub.min.js?v=0.0.3"></script>
+		<script src="/lib/download/downloadprint.js?v=0.0.3"></script>
+		<script src="/lib/js/external/print/jQuery.print.js?v=0.0.3"></script>
+		<script src="/lib/js/external/timer/jquery.lwtCountdown-1.0.js?v=0.0.3"></script>
+		<script src="/lib/download/protect.min.js?v=0.0.3"></script>
+				<!-- Global site tag (gtag.js) - Google Analytics -->
+		<script async src="https://www.googletagmanager.com/gtag/js?id=UA-59533158-2?v=0.0.3"></script>
+		<script>
+			window.dataLayer = window.dataLayer || [];
+			function gtag(){dataLayer.push(arguments);}
+			gtag('js', new Date());
+
+			gtag('config', 'UA-59533158-2');
+		</script>
+	</body>
+</html>

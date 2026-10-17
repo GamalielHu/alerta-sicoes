@@ -1,0 +1,108 @@
+let widgetTurnstileDescargaArchivoId = null;
+let esperandoTokenDescargaArchivo = false;
+let contenedorTurnstileDescargaArchivo = null;
+
+/**
+ * Función para descarga
+ * @param link
+ * @param tokenPagina
+ */
+function descargarArchivoPortal(link, tokenPagina){
+    descargarArchivoPortalServidor(link, tokenPagina,'');
+}
+
+/**
+ * Función para descarga de archivo del servidor
+ * @param link
+ * @param tokenPagina
+ * @param tipo
+ */
+function descargarArchivoPortalServidor(link, tokenPagina, tipo){
+    verificaCaptchaCloud = $("#verificacaptchacloud").val();
+
+    if (verificaCaptchaCloud == 'SI'){
+        if (esperandoTokenDescargaArchivo) {
+            alert('Ya hay una descarga en proceso');
+            return;
+        }
+
+        esperandoTokenDescargaArchivo = true;
+
+        limpiarTurnstileDescargaArchivo();
+
+        contenedorTurnstileDescargaArchivo = document.createElement('div');
+        contenedorTurnstileDescargaArchivo.id = 'turnstile-descarga-' + Date.now();
+        document.body.appendChild(contenedorTurnstileDescargaArchivo);
+
+        widgetTurnstileDescargaArchivoId = turnstile.render('#' + contenedorTurnstileDescargaArchivo.id, {
+            sitekey: $("#captchacloudkey").val(),
+            size: 'invisible',
+            action: 'sic-archivosPortal',
+            callback: function(token) {
+                let inputToken = document.getElementById('cf-turnstile-response');
+                if (!inputToken) {
+                    inputToken = document.createElement('input');
+                    inputToken.type = 'hidden';
+                    inputToken.id = 'cf-turnstile-response';
+                    inputToken.name = 'cf-turnstile-response';
+                    document.getElementById('formDescargaArchivoPortal').appendChild(inputToken);
+                }
+                inputToken.value = token;
+
+                $("#tokenSeccion").val(tokenPagina);
+                $("#linkArchivo").val(link);
+                $("#tipo").val(tipo);
+                $("#direccion").val(direccion());
+
+                $("#formDescargaArchivoPortal").submit();
+
+                setTimeout(function() {
+                    esperandoTokenDescargaArchivo = false;
+                    limpiarTurnstileDescargaArchivo();
+                }, 2000);
+            },
+            'error-callback': function() {
+                esperandoTokenDescargaArchivo = false;
+                alert('Error al verificar el captcha. Por favor, intente nuevamente.');
+                limpiarTurnstileDescargaArchivo();
+            }
+        });
+    } else {
+        $("#tokenSeccion").val(tokenPagina);
+        $("#linkArchivo").val(link);
+        $("#tipo").val(tipo);
+        $("#direccion").val(direccion());
+        $("#formDescargaArchivoPortal").submit();
+    }
+}
+
+/**
+ * Limpia widget turnstile
+ */
+function limpiarTurnstileDescargaArchivo() {
+    if (widgetTurnstileDescargaArchivoId !== null) {
+        try {
+            turnstile.remove(widgetTurnstileDescargaArchivoId);
+        } catch(e) {
+            alert('Error removiendo widget');
+        }
+        widgetTurnstileDescargaArchivoId = null;
+    }
+
+    if (contenedorTurnstileDescargaArchivo && contenedorTurnstileDescargaArchivo.parentNode) {
+        contenedorTurnstileDescargaArchivo.parentNode.removeChild(contenedorTurnstileDescargaArchivo);
+        contenedorTurnstileDescargaArchivo = null;
+    }
+}
+
+/**
+ * Obtiene la dirección del archivo
+ * @returns {string}
+ */
+function direccion(){
+    let url = window.location.href;
+    const urlParams = new URLSearchParams(new URL(url).search);
+    const tipo = urlParams.get('tipo');
+    let direccion = tipo == 'convNacional' || tipo == 'convInternacional' ? 'convocatorias': '';
+    return direccion;
+}

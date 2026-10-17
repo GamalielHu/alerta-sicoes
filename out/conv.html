@@ -1,0 +1,790 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>SICOES</title>
+        <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1" />
+        <link rel="icon" type="image/x-icon" href="/favicon.ico">
+        <link href="/css/external/bootstrap/bootstrap.min.css" rel="stylesheet" type="text/css" media="all" />
+        <!-- Template -->
+        <link href="/css/portal.css" rel="stylesheet" type="text/css" media="all" />
+        <link href="/css/portal-admin.css" rel="stylesheet" type="text/css" media="all" />
+        <!-- DataTables -->
+        <link href="/css/external/datatables/dataTables.bootstrap.css" rel="stylesheet">
+        <!--iCheck for checkboxes and radio inputs-->
+        <link rel="stylesheet" href="/css/adminTemplate/iCheck/all.css">
+        <!--Datepicker-->
+        <link rel="stylesheet" href="/css/external/datepicker/datepicker.css">
+        <!--Nprogress-->
+        <link rel="stylesheet" href="/css/external/nprogress/nprogress.css">
+        <!--Download Server-->
+        <link rel="stylesheet" href="/lib/download/downloadserver.css">
+        <!--captcha Google Verificacion de 2 pasos -->
+        <!-- js -->
+        <script src="/lib/js/external/jquery/jquery.min.js?v=0.0.3"></script>
+        <script src="/lib/js/external/auto/jquery.disable.autocomplete.min.js?v=0.0.3"></script>
+        <script src="/lib/js/app/portal-admin.js?v=0.0.3"></script>
+        <script src="https://www.google.com/recaptcha/api.js?render=0x4AAAAAABjOuoSrQDMK9Yq2"></script>
+    </head>
+    <body>
+        <!-- header -->
+        <nav class="navbar-inverse navbar-fixed-top">
+            <div class="container">
+                <div style="padding: 0 1em;">
+                    <div class="navbar-header">
+                        <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
+                            <span class="sr-only">Toggle navigation</span>
+                            <span class="icon-bar"></span>
+                            <span class="icon-bar"></span>
+                            <span class="icon-bar"></span>
+                        </button>
+                        <div class="body-top-left"> </div>
+                    </div>
+                    <div id="navbar" class="collapse navbar-collapse">
+                        <ul class="nav navbar-nav navbar-right menu-cabecera">
+                            <li class=""><a href="#" onclick="irLink('/portal/index.php')">Inicio</a></li>
+                            <li class="submenu active">
+                                <span class="dropdown nombreMenu">Contrataciones<div class="caret"></div></span>
+                                <ul class="child menu">
+                                    <li>
+                                        <span class="dropdown">B&uacute;squeda<div class="caret"></div></span>
+                                        <ul class="deep-child menu">
+                                            <li><a href="#" onclick="irLink('/portal/contrataciones/busqueda/convocatorias.php?tipo=convNacional')">Convocatorias</a></li>
+                                            <li><a href="#" onclick="irLink('/portal/contrataciones/busqueda/convocatorias.php?tipo=convInternacional')">Convocatorias Internacionales</a></li>
+                                            <li><a href="#" onclick="irLink('/portal/contrataciones/busqueda/contResueltos.php')">Contratos Resueltos</a></li>
+                                            <li><a href="#" onclick="irLink('/portal/contrataciones/busqueda/desistimientoCont.php')">Desistimiento a la formalización</a></li>
+                                            <div class="bf"></div>
+                                         </ul>
+                                    </li>
+                                    <li><a href="#" onclick="irLink('/portal/contrataciones/pac/pac.php')">Programa Anual de Contrataciones</a></li>
+                                    <li>
+                                        <span class="dropdown">Otras publicaciones<div class="caret"></div></span>
+                                        <ul class="deep-child menu">
+                                            <li><a href="#" onclick="irLink('/portal/contrataciones/otrasPublicaciones/requerimientoPersonal.php')">Requerimiento de Personal</a></li>
+                                            <li><a href="#" onclick="irLink('/portal/contrataciones/otrasPublicaciones/convDisposicionBienes.php')">Arrendamiento, remate y otros</a></li>
+                                            <li><a href="#" onclick="irLink('/portal/contrataciones/otrasPublicaciones/contOtrosPaises/contOtrosPaises.php')">Contrataciones de otros pa&iacute;ses</a></li>
+                                            <div class="bf"></div>
+                                         </ul>
+                                    </li>
+                                    <li><a href="#" onclick="irLink('/portal/formularios/formularios.php')">Formularios</a></li>
+                                    <div class="bf"></div>
+                                </ul>
+                            </li>
+                            <li class="submenu">
+                                <a href="https://sigep.gob.bo/procesoCompra/#/disposicionbienes/listaConvocatorias" target="_blank">Destino de Bienes</a>
+                            </li>
+
+                            <li class="">
+                                <a href="#" onclick="irLink('/portal/rupe/guiaProveedores.php')" class="nombreMenu">RUPE</a>
+                            </li>
+                            <li class="submenu ">
+                                <span class="dropdown nombreMenu">Normativa<div class="caret"></div></span>
+                                <ul class="child menu">
+                                    <li><a href="#" onclick="irLink('/portal/normativa/decretos.php')">Decretos, reglamentos y modelos</a></li>
+                                    <div class="bf"></div>
+                                </ul>
+                            </li>
+                            <li class="submenu ">
+                                <span class="dropdown nombreMenu">Incumplidos<div class="caret"></div></span>
+                                <ul class="child menu">
+                                    <li><a href="#" onclick="irLink('/portal/incumplidos/incPacEstProceso.php?tipo=estadoProceso')">Entidades inhabilitadas</a></li>
+                                    <li><a href="#" onclick="irLink('/portal/incumplidos/entidadesExcepcion.php')">Entidades con excepci&oacute;n para el registro</a></li>
+                                    <div class="bf"></div>
+                                </ul>
+                            </li>
+                            <li class="submenu ">
+                                <span class="dropdown nombreMenu">Clasificadores<div class="caret"></div></span>
+                                <ul class="child menu">
+                                    <li><a href="#" onclick="irLink('/portal/clasificadores/institucional.php')">Institucional</a></li>
+                                    <li><a href="#" onclick="irLink('/portal/clasificadores/partidas.php')">Partidas</a></li>
+                                    <li><a href="#" onclick="irLink('/portal/clasificadores/organismoFinanciadores.php')">Organismos Financiadores</a></li>
+                                    <li><a href="#" onclick="irLink('/portal/clasificadores/usuarios.php')">Usuarios Habilitados</a></li>
+                                    <div class="bf"></div>
+                                </ul>
+                            </li>
+                            <li class="submenu ">
+                                <span class="dropdown nombreMenu">Compro Hecho en Bolivia<div class="caret"></div></span>
+                                <ul class="child menu">
+                                    <li><a href="https://sigep.gob.bo/catBienes/#/catele/consultaCatalogoElectronico" target="_blank">Cat&aacute;logo Electr&oacute;nico CHB</a></li>
+                                    <li><a href="https://sigep.gob.bo/mercadoVirtual/#/home/CCHB" target="_blank">Mercado Virtual CHB</a></li>
+                                    <li><a href="#" onclick="irLink('/portal/contrataciones/busqueda/procesosNoFicha.php?tipo=noFicha')">Procesos sin Ficha T&eacute;cnica</a></li>
+                                     <div class="bf"></div>
+                                </ul>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </nav>
+        <!-- content -->
+        <div class="body-content">
+            <div class="container-fluid">
+                <div class="navigation">
+                    <nav class="navbar navbar-default">
+                        <span class="title">SISTEMA DE CONTRATACIONES ESTATALES</span>
+                        <div class="social pull-right">
+                            <a href="#" onclick="irLink('/portal/inicio/informacion.php')" class="servc-grid pull-left " data-toggle="tooltip" data-placement="bottom" title="Inf. Institucional">
+                                <div class="servc-grid-left">
+                                    <span class="glyphicon info">i</span>
+                                </div>
+                            </a>
+                            <a href="#" onclick="irLink('/portal/inicio/contactenos.php')" class="servc-grid pull-left "  data-toggle="tooltip" data-placement="bottom" title="Cont&aacute;ctenos">
+                                <div class="servc-grid-left">
+                                    <span class="glyphicon glyphicon-earphone"></span>
+                                </div>
+                            </a>
+                        </div>
+                    </nav>
+                </div>
+                <div class="banner-bottom-grids"><div class="form-busq tab">
+    <input id="colsConvocatoriasSimple" type="hidden" value='["EOruCrdy","CNTBBgTE","ZCpYKnO2","rKUNpugX","iK35wVhH","bilz4Vy4","fxs4PHTJ","6psYW8jS","NlVPUpwv","bxgRB7JN","eN9JfPgQ","3nkKYpPV"]'>
+    <input id="colsConvocatoriasAvanzada" type="hidden" value='["lwbplRZ1","ePOa9A1T","6Khfsx8P","RmrWriqF","biqBbRUA","7J6n4gxU","pi3SqScg","QiKduYTX","8fe4UjI7","fT1l5HKZ","GKnVGaep","L4DRjYdq","4xSaI3iq","ZENukjAj","maKEyyIb","xIykXFuQ","3UePhKIg","dTJXh6Ig","wKRlB6jf","ye3SjdmX"]'>
+    <h4>
+        <span class="titulo pull-left">CONVOCATORIAS </span>
+        <ul class="btn-group tab-menu pull-right">
+            <li class="btn-group btn-group-sm active">
+                <a class="btn btn-default" data-toggle="tab" href="#f-simple">Simple</a>
+            </li>
+            <li class="btn-group btn-group-sm ">
+                <a class="btn btn-default" data-toggle="tab" href="#f-avanzada">Avanzada</a>
+            </li>
+        </ul>
+    </h4>
+</div>
+<div class="tab-content">
+    <!--Busqueda Simple-->
+    <div id="f-simple" class="tab-pane fade in active">
+        <span class="glyphicon glyphicon-minus btn-collapse" data-toggle="collapse" href="#formSimple"></span>
+        <form id="formSimple" class="form-horizontal width100 collapse in" onsubmit="return buscarConvocatorias('Simple','tablaSimple','formSimple',null,'convNacional')" method="post">
+            <input type="hidden" name="token" value="40eb6669f723f1e22126e276a0c1447ea64512ba96b1a9a493f3a7b5b825ef8b">
+            <div class="form-busq">
+                <div class="row">
+                    <div class="col-lg-6 col-md-6 col-sm-12 col-xs-12">
+                        <label class="col-lg-4 col-md-4 col-sm-4 col-xs-12 control-label">Entidad:</label>
+                        <div class="col-lg-8 col-md-8 col-sm-8 col-xs-12 margin-bottom-5 padding-0">
+                            <input type="text" class="form-control input-sm" name="entidad">
+                        </div>
+                    </div>
+                    <div class="col-lg-6 col-md-6 col-sm-12 col-xs-12">
+                        <label class="col-lg-4 col-md-4 col-sm-4 col-xs-12 control-label">Objeto de Contrataci&oacute;n:</label>
+                        <div class="col-lg-8 col-md-8 col-sm-8 col-xs-12 margin-bottom-5 padding-0">
+                            <input type="text" class="form-control input-sm" name="objetoContrato">
+                        </div>
+                    </div>
+                    <div class="col-lg-6 col-md-6 col-sm-12 col-xs-12 fechas">
+                        <label class="col-lg-4 col-md-4 col-sm-4 col-xs-12 control-label">Fecha de publicaci&oacute;n SICOES:</label>
+                        <div class="col-lg-4 col-md-4 col-sm-4 col-xs-6 margin-bottom-5 input-group">
+                            <input type="text" class="form-control input-sm datePicker" name="publicacionDesde" placeholder="dd/mm/aaaa">
+                            <div class="input-group-addon calendar"><span class="glyphicon glyphicon-calendar"></span></div>
+                        </div>
+                        <label class="control-label fecha">y</label>
+                        <div class="col-lg-4 col-md-4 col-sm-4 col-xs-6 margin-bottom-5 input-group">
+                            <input type="text" class="form-control input-sm datePicker" name="publicacionHasta" placeholder="dd/mm/aaaa">
+                            <div class="input-group-addon calendar"><span class="glyphicon glyphicon-calendar"></span></div>
+                        </div>
+                    </div>
+                    <div class="col-lg-6 col-md-6 col-sm-12 col-xs-12 fechas ">
+                        <label class="col-lg-4 col-md-4 col-sm-4 col-xs-12 control-label">Fecha de presentaci&oacute;n de propuestas:</label>
+                        <div class="col-lg-4 col-md-4 col-sm-4 col-xs-6 margin-bottom-5 input-group">
+                            <input type="text" class="form-control input-sm datePicker" name="presentacionPropuestasDesde" placeholder="dd/mm/aaaa">
+                            <div class="input-group-addon calendar"><span class="glyphicon glyphicon-calendar"></span></div>
+                        </div>
+                        <label class="control-label fecha">y</label>
+                        <div class="col-lg-4 col-md-4 col-sm-4 col-xs-6 margin-bottom-5 input-group">
+                            <input type="text" class="form-control input-sm datePicker" name="presentacionPropuestasHasta" placeholder="dd/mm/aaaa">
+                            <div class="input-group-addon calendar"><span class="glyphicon glyphicon-calendar"></span></div>
+                        </div>
+                    </div>
+                    <div class="col-lg-6 col-md-6 col-sm-12 col-xs-12 cuce" style="display: flex;">
+                        <label class="col-lg-4 col-md-4 col-sm-4 col-xs-12 control-label">CUCE:</label>
+                        <div class="col-lg-1 col-md-1 col-sm-1 col-xs-12 margin-bottom-5 padding-0">
+                            <input type="number" class="form-control input-sm" name="cuce1" maxlength="2" min="02" max="26">
+                        </div>
+                        <label class="linea-cuce">-</label>
+                        <div class="col-lg-1 col-md-1 col-sm-1 col-xs-12 margin-bottom-5 padding-0">
+                            <input type="text" class="form-control input-sm" name="cuce2" maxlength="4">
+                        </div>
+                        <label class="linea-cuce">-</label>
+                        <div class="col-lg-1 col-md-1 col-sm-1 col-xs-12 margin-bottom-5 padding-0">
+                            <input type="text" class="form-control input-sm" name="cuce3" maxlength="2">
+                        </div>
+                        <label class="linea-cuce">-</label>
+                        <div class="col-lg-2 col-md-1 col-sm-1 col-xs-12 margin-bottom-5 padding-0">
+                            <input type="number" class="form-control input-sm" name="cuce4" value="">
+                        </div>
+                        <label class="linea-cuce">-</label>
+                        <div class="col-lg-1 col-md-1 col-sm-1 col-xs-12 margin-bottom-5 padding-0">
+                            <input type="number" class="form-control input-sm" name="cuce5" maxlength="2" min="0" value="">
+                        </div>
+                        <label class="linea-cuce">-</label>
+                        <div class="col-lg-1 col-md-1 col-sm-1 col-xs-12 margin-bottom-5 padding-0">
+                            <input type="text" class="form-control input-sm" name="cuce6" maxlength="2"
+                                value="">
+                        </div>
+                    </div>
+                    <div class="col-lg-6 col-md-6 col-sm-12 col-xs-12">
+                        <label class="col-lg-4 col-md-4 col-sm-4 control-label">Ver:</label>
+                        <div class="col-lg-8 col-md-8 col-sm-8 padding-0">
+                            <label class="radio-inline">
+                                <input type="radio" name="r1" class="minimal" value="11"
+                                    checked> S&oacute;lo Vigentes
+                            </label>
+                            <label class="radio-inline">
+                                <input type="radio" name="r1" class="minimal" value=""
+                                    > Todos
+                            </label>
+                        </div>
+                    </div>
+                    <div class="col-lg-6 col-md-6 col-sm-12 col-xs-12 ">
+                        <label class="col-lg-4 col-md-4 col-sm-4 control-label">Subasta:</label>
+                        <div class="col-lg-8 col-md-8 col-sm-8 padding-0">
+                            <label class="radio-inline">
+                                <input type="radio" name="subasta" class="minimal" value="S" > Si
+                            </label>
+
+                            <label class="radio-inline">
+                                <input type="radio" name="subasta" class="minimal" value="N"> No
+                            </label>
+                            <label class="radio-inline">
+                                <input type="radio" name="subasta" class="minimal" value="" checked> Todos
+                            </label>
+                        </div>
+                    </div>
+                    <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
+                                                    <h5 class="text-muted">Tipo de Contrataci&oacute;n Agrupado:</h5>
+                            <div class="pull-left">
+                                <label class="checkbox-inline"><input type="checkbox" value="B" class="minimal" name="bienes" checked> Bienes</label>
+                                <label class="checkbox-inline"><input type="checkbox" value="O" class="minimal" name="obras" checked> Obras</label>
+                                <label class="checkbox-inline"><input type="checkbox" value="S" class="minimal" name="servicios" checked> Servicios Generales</label>
+                                <label class="checkbox-inline"><input type="checkbox" value="C" class="minimal" name="consultoria" checked> Servicios de Consultor&iacute;a</label>
+                            </div>
+                                                <div class="pull-right">
+                            <input type="hidden" name="tipo" value="Simple">
+                            <input class="btn btn-primary btn-sm busquedaForm" type="submit" value="Buscar" data-operacion=convNacional data-tipo="Simple" data-form="btnConvNacionalInter">
+                            <input class="btn btn-default btn-sm limpiarForm" type="button" value="Limpiar">
+                        </div>
+                    </div>
+                    
+                </div>
+            </div>
+        </form>
+        <div class="table-responsive width100">
+            <table id="tablaSimple" class='table dataTable table-hover table-striped table-bordered table-condensed'>
+                <thead>
+                    <tr>
+                        <th>CUCE:</th>
+                        <th>Entidad:</th>
+                        <th>Tipo Contrataci&oacute;n:</th>
+                        <th>Modalidad:</th>
+                        <th>Objeto de Contrataci&oacute;n:</th>
+                        <th>Subasta</th>
+                        <th>Fecha Publicaci&oacute;n:</th>
+                        <th>Fecha Presentaci&oacute;n:</th>
+                        <th>Estado:</th>
+                        <th>Archivos:</th>
+                        <th>Formularios:</th>
+                        <th>Reportes:</th>
+                    </tr>
+                </thead>
+            </table>
+        </div>
+    </div>
+    <!--Busqueda Avanzada-->
+    <div id="f-avanzada" class="tab-pane fade in ">
+        <span class="glyphicon glyphicon-minus btn-collapse" data-toggle="collapse" href="#formAvanzada"></span>
+        <form id="formAvanzada" class="form-horizontal width100 collapse in" onsubmit="return buscarConvocatorias('Avanzada','tablaAvanzada','formAvanzada',null,'convNacional')">
+            <input id="token" type="hidden" name="token" value="40eb6669f723f1e22126e276a0c1447ea64512ba96b1a9a493f3a7b5b825ef8b">
+            <div class="form-busq">
+                <div class="row">
+                    <h5 class="col-lg-1 col-md-1 col-sm-2 col-xs-12 text-muted">Convocante</h5>
+                    <div class="col-lg-11 col-md-11 col-sm-10 col-xs-12 padding-0">
+                        <div class="col-lg-6 col-md-6 col-sm-12 col-xs-12">
+                            <label class="col-lg-3 col-md-4 col-sm-4 col-xs-12 control-label">Entidad:</label>
+                            <div class="col-lg-8 col-md-8 col-sm-8 col-xs-12 padding-0 margin-bottom-5">
+                                <input type="text" name="entidad" class="form-control input-sm">
+                            </div>
+                        </div>
+                        <div class="col-lg-6 col-md-6 col-sm-12 col-xs-12">
+                            <label class="col-lg-4 col-md-4 col-sm-4 col-xs-12 control-label">Departamento:</label>
+                            <div class="col-lg-8 col-md-8 col-sm-8 col-xs-12 padding-0 margin-bottom-5"><select class='TextoBotones form-control input-sm' name='codigoDpto' id='codigoDpto' ><option value=''>Seleccione</option><option value=02 >La Paz</option><option value=01 >Chuquisaca</option><option value=03 >Cochabamba</option><option value=04 >Oruro</option><option value=05 >Potosi</option><option value=06 >Tarija</option><option value=07 >Santa Cruz</option><option value=08 >Beni</option><option value=09 >Pando</option><option value=NA >No Aplica</option></select></div>
+                        </div>
+                    </div>
+                    <h5 class="col-lg-1 col-md-1 col-sm-2 col-xs-12 text-muted">Proceso</h5>
+                    <div class="col-lg-11 col-md-11 col-sm-10 col-xs-12 padding-0">
+                        <div class="col-lg-6 col-md-6 col-sm-12 col-xs-12 cuce" style="display: flex;">
+                            <label class="col-lg-3 col-md-4 col-sm-4 col-xs-12 control-label">CUCE:</label>
+                            <div class="col-lg-1 col-md-1 col-sm-1 col-xs-12 margin-bottom-5 padding-0">
+                                <input type="number" class="form-control input-sm" name="cuce1" maxlength="2" min="02" max="26">
+                            </div>
+                            <label class="linea-cuce">-</label>
+                            <div class="col-lg-1 col-md-1 col-sm-1 col-xs-12 margin-bottom-5 padding-0">
+                                <input type="text" class="form-control input-sm" name="cuce2" maxlength="4">
+                            </div>
+                            <label class="linea-cuce">-</label>
+                            <div class="col-lg-1 col-md-1 col-sm-1 col-xs-12 margin-bottom-5 padding-0">
+                                <input type="text" class="form-control input-sm" name="cuce3" maxlength="2">
+                            </div>
+                            <label class="linea-cuce">-</label>
+                            <div class="col-lg-2 col-md-1 col-sm-1 col-xs-12 margin-bottom-5 padding-0">
+                                <input type="number" class="form-control input-sm" name="cuce4">
+                            </div>
+                            <label class="linea-cuce">-</label>
+                            <div class="col-lg-1 col-md-1 col-sm-1 col-xs-12 margin-bottom-5 padding-0">
+                                <input type="number" class="form-control input-sm" name="cuce5" maxlength="2" min="0">
+                            </div>
+                            <label class="linea-cuce">-</label>
+                            <div class="col-lg-1 col-md-1 col-sm-1 col-xs-12 margin-bottom-5 padding-0">
+                                <input type="text" class="form-control input-sm" name="cuce6" maxlength="2">
+                            </div>
+                        </div>
+                        <div class="col-lg-6 col-md-6 col-sm-12 col-xs-12">
+                            <label class="col-lg-4 col-md-4 col-sm-4 col-xs-12 control-label">Objeto:</label>
+                            <div class="col-lg-8 col-md-8 col-sm-8 col-xs-12 padding-0 margin-bottom-5">
+                                <input type="text" class="form-control input-sm" name="objetoContrato">
+                            </div>
+                        </div>
+                        <div class="col-lg-6 col-md-6 col-sm-12 col-xs-12">
+                            <label class="col-lg-3 col-md-4 col-sm-4 col-xs-12 control-label">Modalidad:</label>
+                            <div class="col-lg-8 col-md-8 col-sm-8 col-xs-12 padding-0 margin-bottom-5"><select class='TextoBotones form-control input-sm' name='codigoModalidad' id='codigoModalidad' ><option value=''>Seleccione</option><option value=CM >Contratacion Menor</option><option value=LP >Licitacion Publica</option><option value=EX >Contratacion por Excepcion</option><option value=ANPE >Apoyo Nacional a la Produccion y Empleo (hasta Bs. 200.000)</option><option value=ANPP >Apoyo Nacional a la Produccion y Empleo (de Bs. 200.001 adelante)</option><option value=CD >Contratacion Directa</option><option value=EM >Contratacion por Emergencia</option><option value=OF >Otras modalidades</option><option value=CND1 >Compra Nacional Directa</option><option value=CNC >Compra Nacional por Convocatoria</option><option value=COOF >Concurso de Ofertas</option></select></div>
+                        </div>
+                        <div class="col-lg-6 col-md-6 col-sm-12 col-xs-12">
+                            <label class="col-lg-4 col-md-4 col-sm-4 col-xs-12 control-label">Estado:</label>
+                            <div class="col-lg-8 col-md-8 col-sm-8 col-xs-12 padding-0 margin-bottom-5"><select class='TextoBotones form-control input-sm' name='r1' id='r1' ><option value=''>Seleccione</option><option value=3J >En curso sin contrato firmado</option><option value=4J >En curso sin recepcion definitiva</option><option value=11 >Vigente</option><option value=12 >No Informado</option><option value=1S >Suspendido</option><option value=1A >Anulado</option><option value=2D >Desierto</option><option value=2C >Contratado</option><option value=2X >Cancelado</option><option value=1C >En curso</option><option value=2A >Anulado desde la convocatoria</option><option value=1J >Con plazo vencido (Justificado)</option><option value=2J >Sin documentacion de cierre</option><option value=2E >Eliminado por duplicidad incurrida por la entidad</option><option value=2F >Eliminado (registro erroneo)</option><option value=5J >Sin informacion de Contrato</option><option value=6J >Sin informacion de Recepcion Definitiva</option><option value=7J >Sin informacion de Contrato ni Recepcion</option><option value=1D >Adjudicado</option><option value=2D1 >Desierto Parcial</option><option value=2A1 >Anulado Parcial</option><option value=2X1 >Cancelado Parcial</option><option value=1S1 >Suspendido Parcial</option></select></div>
+                        </div>
+                        <div class="col-lg-6 col-md-6 col-sm-12 col-xs-12">
+                            <label class="col-lg-3 col-md-4 col-sm-4 col-xs-12 control-label">Tipo de contrataci&oacute;n:</label>
+                            <div class="col-lg-8 col-md-8 col-sm-8 col-xs-12 padding-0 margin-bottom-5"><select class='TextoBotones form-control input-sm' name='codigoContrato' id='codigoContrato' ><option value=''>Seleccione</option><option value=B >Bienes</option><option value=O >Obras</option><option value=S >Servicios Generales</option><option value=C >Consultoria</option></select></div>
+                        </div>
+                        <div class="col-lg-6 col-md-6 col-sm-12 col-xs-12">
+                            <label class="col-lg-4 col-md-4 col-sm-4 col-xs-12 control-label">Nro. de contrato:</label>
+                            <div class="col-lg-8 col-md-8 col-sm-8 col-xs-12 padding-0 margin-bottom-5">
+                                <input type="text" class="form-control input-sm" name="nroContrato">
+                            </div>
+                        </div>
+                        <div class="col-lg-6 col-md-6 col-sm-12 col-xs-12">
+                            <label class="col-lg-3 col-md-4 col-sm-4 col-xs-12 control-label">Normativa:</label>
+                            <div class="col-lg-8 col-md-8 col-sm-8 col-xs-12 padding-0 margin-bottom-5"><select class='TextoBotones form-control input-sm' name='codigoNormativa' id='codigoNormativa' ><option value=''>Seleccione</option><option value=181 >NB-SABS (D.S.0181)</option><option value=4505 >Compro Hecho en Bolivia (D.S.4505)</option><option value=29190 >NB-SABS (29190)</option><option value=BID >Normativa del Financiador (BID)</option><option value=BM >Normativa del Financiador (BM)</option><option value=5374EG >D.S. 5374 Elecciones Generales 2025</option><option value=1700ES >Ley 1700 Elecciones Subnacionales 2026</option><option value=1549EJ >Ley 1549 Elecciones Judiciales 2024</option><option value=25964 >NB-SABS (25964)</option><option value=26685 >NB-SABS (26685 - Mun.)</option><option value=26842 >NB-SABS (26842 - Obras)</option><option value=27328 >NB-SABS (27328)</option><option value=225557 >SPO</option><option value=217055 >SOA</option><option value=225558 >SP</option><option value=26115 >SAP</option><option value=218056 >ST</option><option value=218041 >SCP</option><option value=26688 >D.S. 26688</option><option value=227121 >SCI</option><option value=29576 >D.S. 29576 (Empresas Estrategicas)</option><option value=29661 >D.S. 29661 (Cont. Directa de Empresas Públicas)</option><option value=0913 >Programa Bolivia Cambia (D.S.0913)</option><option value=0913-2 >D.S. 2511 Programa Bolivia Cambia</option><option value=2768 >Decreto Supremo 2768</option><option value=3190 >D.S. 3190</option><option value=3319 >D.S. 3319 (Adquisición y dist. De Subsidios)</option><option value=3173 >D.S. 3173 (Dakar 2018)</option><option value=2439 >D.S. 2439 FPS</option><option value=181-P >D.S. 0181 (Uso parcial BID)</option><option value=622 >Ley 622 Alimentacion Escolar</option><option value=2294 >D.S. 2294 mod por D.S. 2471 Prov. no Comerciales</option><option value=3639 >D.S. 3639 OECOM's</option><option value=3728 >D.S. 3728 SENATEX</option><option value=3548 >D.S. 1841 mod por D.S. 3548 Ent. Bancaria Publica</option><option value=3830 >D.S. 3830 SUS</option><option value=4174 >D.S. 4174 (COVID-19)</option><option value=ON >Otra Normativa especifica nacional</option><option value=NF >Normativa del Financiador</option><option value=EMSAN >Contratación por Emergencia Sanitaria (D.S. 4542)</option><option value=O >Otra Normativa especifica</option></select></div>
+                        </div>
+                        <div class="col-lg-6 col-md-6 col-sm-12 col-xs-12 fechas">
+                            <label class="col-lg-4 col-md-4 col-sm-4 col-xs-12 control-label">Monto en Bs.:</label>
+                            <div class="col-lg-4 col-md-4 col-sm-4 col-xs-6 margin-bottom-5 input-group">
+                                <input type="text" class="form-control input-sm" name="montoDesde" placeholder="Desde">
+                                <div class="input-group-addon">$</div>
+                            </div>
+                            <label class="control-label fecha">-</label>
+                            <div class="col-lg-4 col-md-4 col-sm-4 col-xs-6 margin-bottom-5 input-group">
+                                <input type="text" class="form-control input-sm" name="montoHasta" placeholder="Hasta">
+                                <div class="input-group-addon">$</div>
+                            </div>
+                        </div>
+                    </div>
+                    <h5 class="col-lg-1 col-md-1 col-sm-2 col-xs-12 text-muted">Fechas del Proceso</h5>
+                    <div class="col-lg-11 col-md-11 col-sm-10 col-xs-12 padding-0">
+                        <div class="col-lg-6 col-md-6 col-sm-12 col-xs-12 fechas">
+                            <label class="col-lg-3 col-md-4 col-sm-4 col-xs-12 control-label">Publicaci&oacute;n:</label>
+                            <div class="col-lg-4 col-md-4 col-sm-4 col-xs-6 margin-bottom-5 input-group">
+                                <input type="text" class="form-control input-sm datePicker" name="publicacionDesde" placeholder="dd/mm/aaaa">
+                                <div class="input-group-addon calendar"><span class="glyphicon glyphicon-calendar"></span></div>
+                            </div>
+                            <label class="control-label fecha">y</label>
+                            <div class="col-lg-4 col-md-4 col-sm-4 col-xs-6 margin-bottom-5 input-group">
+                                <input type="text" class="form-control input-sm datePicker" name="publicacionHasta" placeholder="dd/mm/aaaa">
+                                <div class="input-group-addon calendar"><span class="glyphicon glyphicon-calendar"></span></div>
+                            </div>
+                        </div>
+                        <div class="col-lg-6 col-md-6 col-sm-12 col-xs-12 fechas">
+                            <label class="col-lg-4 col-md-4 col-sm-4 col-xs-12 control-label">Presentaci&oacute;n:</label>
+                            <div class="col-lg-4 col-md-4 col-sm-4 col-xs-6 margin-bottom-5 input-group">
+                                <input type="text" class="form-control input-sm datePicker" name="presentacionPropuestasDesde" placeholder="dd/mm/aaaa">
+                                <div class="input-group-addon calendar"><span class="glyphicon glyphicon-calendar"></span></div>
+                            </div>
+                            <label class="control-label fecha">y</label>
+                            <div class="col-lg-4 col-md-4 col-sm-4 col-xs-6 margin-bottom-5 input-group">
+                                <input type="text" class="form-control input-sm datePicker" name="presentacionPropuestasHasta" placeholder="dd/mm/aaaa">
+                                <div class="input-group-addon calendar"><span class="glyphicon glyphicon-calendar"></span></div>
+                            </div>
+                        </div>
+                        <div class="col-lg-6 col-md-6 col-sm-12 col-xs-12 fechas">
+                            <label class="col-lg-3 col-md-4 col-sm-4 col-xs-12 control-label">Desierta / Adjudicaci&oacute;n:</label>
+                            <div class="col-lg-4 col-md-4 col-sm-4 col-xs-6 margin-bottom-5 input-group">
+                                <input type="text" class="form-control input-sm datePicker" name="desiertaDesde" placeholder="dd/mm/aaaa">
+                                <div class="input-group-addon calendar"><span class="glyphicon glyphicon-calendar"></span></div>
+                            </div>
+                            <label class="control-label fecha">y</label>
+                            <div class="col-lg-4 col-md-4 col-sm-4 col-xs-6 margin-bottom-5 input-group">
+                                <input type="text" class="form-control input-sm datePicker" name="desiertaHasta" placeholder="dd/mm/aaaa">
+                                <div class="input-group-addon calendar"><span class="glyphicon glyphicon-calendar"></span></div>
+                            </div>
+                        </div>
+                        <div class="col-lg-6 col-md-6 col-sm-12 col-xs-12">
+                            <label class="col-lg-4 col-md-4 col-sm-4 control-label">Subasta:</label>
+                            <div class="col-lg-8 col-md-8 col-sm-8 padding-0">
+                                <label class="radio-inline">
+                                    <input type="radio" name="subasta" class="minimal" value="S" > Si
+                                </label>
+                                <label class="radio-inline">
+                                    <input type="radio" name="subasta" class="minimal" value="N"> No
+                                </label>
+                                <label class="radio-inline">
+                                    <input type="radio" name="subasta" class="minimal" value="" checked> Todos
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    <h5 class="col-lg-1 col-md-1 col-sm-2 col-xs-12 text-muted">Proponente Adjudicada/ Contratada</h5>
+                    <div class="col-lg-11 col-md-11 col-sm-10 col-xs-12 padding-0">
+                        <div class="col-lg-6 col-md-6 col-sm-12 col-xs-12">
+                            <label class="col-lg-3 col-md-4 col-sm-4 col-xs-12 control-label">Nro. Documento:</label>
+                            <div class="col-lg-8 col-md-8 col-sm-8 col-xs-12 padding-0 margin-bottom-5">
+                                <input type="text" name="nroDocumento" class="form-control input-sm">
+                            </div>
+                        </div>
+                        <div class="col-lg-6 col-md-6 col-sm-12 col-xs-12">
+                            <label class="col-lg-4 col-md-4 col-sm-4 col-xs-12 control-label">Nombre/Raz&oacute;n Social:</label>
+                            <div class="col-lg-8 col-md-8 col-sm-8 col-xs-12 padding-0 margin-bottom-5">
+                                <input type="text" name="nombreAdjudicado" class="form-control input-sm">
+                            </div>
+                        </div>
+                    </div>
+                    <h5 class="col-lg-12 col-md-12 col-sm-12 col-xs-12 text-muted">Mostrar los siguientes Campos Adicionales:</h5>
+                    <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
+                        <label class="checkbox-inline"><input type="checkbox" class="minimal" name="personaContDespliegue"> Persona de contacto</label>
+                        <label class="checkbox-inline"><input type="checkbox" value="option2" class="minimal" name="nomtoGarDespliegue"> Monto garant&iacute;a</label>
+                        <label class="checkbox-inline"><input type="checkbox" value="option3" class="minimal" name="costoPlieDespliegue"> Costo pliego</label>
+                        <label class="checkbox-inline"><input type="checkbox" value="option3" class="minimal" name="arpcDespliegue"> A.R.P.C.</label>
+                        <label class="checkbox-inline"><input type="checkbox" value="option1" class="minimal" name="fechaReunionDespliegue"> Fecha reuni&oacute;n aclaraci&oacute;n </label>
+                        <label class="checkbox-inline"><input type="checkbox" value="option2" class="minimal" name="fechaAdjudicacionDespliegue"> Fecha de adjudicaci&oacute;n</label>
+                        <label class="checkbox-inline"><input type="checkbox" value="option3" class="minimal" name="dptoDespliegue"> Departamento</label>
+                        <label class="checkbox-inline"><input type="checkbox" value="option3" class="minimal" name="normativaDespliegue"> Normativa</label>
+                    </div>
+                </div>
+                <div class="col-xs-12 control-label btns padding-0">
+                    <input type="hidden" name="tipo" value="Avanzada">
+                    <input class="btn btn-primary btn-sm busquedaForm" type="submit" value="Buscar" data-operacion=convNacional data-tipo="Avanzada" data-form="btnConvNacionalInter">
+                    <input class="btn btn-default btn-sm limpiarForm" type="button" value="Limpiar">
+                </div>
+            </div>
+        </form>
+        <div class="table-responsive width100">
+            <table id="tablaAvanzada" class='table dataTable table-hover table-striped table-bordered table-condensed'>
+                <thead>
+                    <tr>
+                        <th>CUCE:</th>
+                        <th>Entidad:</th>
+                        <th>Tipo de Contrataci&oacute;n:</th>
+                        <th>Modalidad:</th>
+                        <th>Objeto de Contrataci&oacute;n:</th>
+                        <th>Subasta:</th>
+                        <th>Fecha Publicaci&oacute;n:</th>
+                        <th>Fecha Presentaci&oacute;n:</th>
+                        <th>Estado:</th>
+                        <th>Archivos:</th>
+                        <th>Formularios:</th>
+                        <th>Ficha del proceso:</th>
+                        <th>Persona contacto:</th>
+                        <th>Garant&iacute;a:</th>
+                        <th>CostoPliego:</th>
+                        <th>ARPC:</th>
+                        <th>Reuni&oacute;n aclaraci&oacute;n:</th>
+                        <th>Fecha Adjudicaci&oacute;n / Desierta:</th>
+                        <th>Departamento:</th>
+                        <th>Normativa:</th>
+                    </tr>
+                </thead>
+            </table>
+        </div>
+    </div>
+</div>
+<script src="/lib/js/app/portal/contrataciones/convocatorias.js?v=0.0.3"></script>
+<script type="text/javascript">
+    $(document).ready(function() {
+        $(window).keydown(function(event) {
+            if ((event.keyCode == 13) && ($(event.target)[0] != $("textarea")[0])) {
+                event.preventDefault();
+                return false;
+            }
+        });
+    });
+</script>
+
+
+<form id="formDescargaArchivoPortal" action="/portal/contrataciones/descargarArchivo.php" method="post" target="_blank">
+    
+    <input id="captchacloudkey" type="hidden" name="captchacloudkey" value="0x4AAAAAABjOuoSrQDMK9Yq2">
+    <input id="verificacaptchacloud" type="hidden" name="verificacaptchacloud" value="SI">
+    <input id="tokenarchivo" type="hidden" name="tokenarchivo" value="458b15b37679ab30b057df91857162ed4fc41c91d73352812399b7c88128c486">
+    <input id="tokenSeccion" type="hidden" name="token" value="">
+    <input id="recaptcha_token" type="hidden" name="recaptcha_token" value="">
+    <input id="linkArchivo" type="hidden" name="data" value="">
+    <input id="tipo" type="hidden" name="tipo" value="">
+    <input id="direccion" type="hidden" name="direccion" value="">
+</form>
+
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" defer></script>
+<script src="/lib/js/app/portal/archivos.js?v=0.0.3"></script>
+<script src="/lib/js/app/portal/archivosModal.js?v=0.0.3"></script>
+<input id="captchacloudkey" type="hidden" name="captchacloudkey" value="0x4AAAAAABjOuoSrQDMK9Yq2">
+<input id="verificacaptchacloud" type="hidden" name="verificacaptchacloud" value="SI">
+<div id="modalVerArchivos" class="modal fade bs-example-modal-lg" tabindex="-1" role="dialog" aria-labelledby="myLargeModalLabel">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content tab-content">
+            <div class="modal-header text-center modal-header-sicoes">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                <h4 class="modal-title" id="tituloModalArchivos"></h4>
+            </div>
+            <div class="modal-body">
+                <div class="row" >
+                    <div id="contenidoModalArchivos" class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
+
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-sm btn-default" data-dismiss="modal">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" defer></script>
+<script src="/lib/js/app/portal/formularioModal.js?v=0.0.3"></script>
+<input id="tokenform" type="hidden" name="tokenform" value="bcf01e2cd1b967101f4058a9e2832ac0c70dc13fc7c910dc6a270097cc23e1ee">
+<input id="captchacloudkey" type="hidden" name="captchacloudkey" value="0x4AAAAAABjOuoSrQDMK9Yq2">
+<input id="verificacaptchacloud" type="hidden" name="verificacaptchacloud" value="SI">
+<form id="mi-formulario"></form>
+<div id="modalVerFormulario" class="modal fade bs-example-modal-lg" tabindex="-1" role="dialog" aria-labelledby="myLargeModalLabel">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content tab-content">
+            <div class="modal-header text-center modal-header-sicoes">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                <h4 class="modal-title" id="tituloModalFormulario"></h4>
+            </div>
+            <div class="modal-body">
+                <div class="row" >
+                    <div id="visualizarformulario0" class="contenidoFormulario visualizarformulariopag0 col-lg-12 col-md-12 col-sm-12 col-xs-12">
+
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-sm btn-default" data-dismiss="modal">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
+<script src="/lib/js/app/portal/confirmacionModal.js?v=0.0.3"></script>
+<input id="tokenconf" type="hidden" name="tokenconf" value="130f198fac1c6a139866a80380c04ccbb2106a7782f3183ed5c5453a73e434b5">
+<input id="captchacloudkey" type="hidden" name="captchacloudkey" value="0x4AAAAAABjOuoSrQDMK9Yq2">
+<input id="verificacaptchacloud" type="hidden" name="verificacaptchacloud" value="SI">
+<div id="modalVerConfirmacion" class="modal fade bs-example-modal-lg" tabindex="-1" role="dialog" aria-labelledby="myLargeModalLabel">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content tab-content">
+            <div class="modal-header text-center modal-header-sicoes">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                <h4 class="modal-title" id="tituloModalConfirmacion"></h4>
+            </div>
+            <div class="modal-body">
+                <div class="row" id="visualizarformulario1">
+                    <div id="contenidoConfirmacion" class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
+
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-sm btn-default" data-dismiss="modal">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+				</div>
+			</div>
+			<!-- footer -->
+            <div class="footer" >
+                <div class="container">
+                    <div class="row">
+                        <div class="col-lg-6" style="text-align: left">
+                            <p><span class="glyphicon glyphicon-home"></span><strong>&nbsp;Dirección:</strong> Edif. Contraloría General del
+                                Estado, Piso 7, Calle Colón, esq. Indaburo, La Paz, Bolivia</p>
+                            <p><span class="glyphicon glyphicon-earphone"></span><strong>&nbsp;&nbsp;Línea Gratuita:</strong> 800-10-6337</p>
+                            <p><span class="glyphicon glyphicon-phone-alt"></span><strong> Teléfono:</strong> (591-2) 2177300</p>
+                        </div>
+                        <div class="col-lg-4">
+                            <p><strong>HORARIOS DE ATENCIÓN<br>Lunes a Viernes</strong></p>
+                            <div class="col-lg-12">
+                                <p>De 8:30 a 16:30</p>
+                            </div>
+                        </div>
+                        <div class="col-lg-2">
+                            <p><strong>REDES SOCIALES</strong></p>
+                            <div>
+                                <div class="col-lg-6">
+                                    <a href="https://www.facebook.com/SicoesBo">
+                                        <span class="facebook"></span>
+                                    </a>
+                                </div>
+                                <div class="col-lg-6">
+                                    <a href="https://www.youtube.com/@SicoesBol">
+                                        <span class="youtube"></span>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        <body style="margin: 0; padding: 0;">
+        <div style="width: 100%; text-align: center;">
+            <div style="text-align: right; margin-right: 10px;">
+                <strong>SICOES 1.6.0.8.0.1</strong>
+            </div>
+            <div style="display: flex; justify-content: center; align-items: center;">
+                <img src="/img/portal/portadaPresidencia.png" alt="Portada Presidencia"
+                     style="max-height: 90px; width: auto; max-width: 100%; display: block; margin: 0; padding: 0;">
+            </div>
+        </div>
+        </body>
+        <script src="/lib/download/developer_console.min.js?v=0.0.3"></script>
+		<!-- js -->
+		<script src="/lib/js/external/bootstrap/bootstrap.min.js?v=0.0.3"></script>
+		<!-- Highcharts -->
+		<script src="/lib/js/external/Highcharts/highcharts.js?v=0.0.3"></script>
+		<script src="/lib/js/external/Highcharts/highcharts-3d.js?v=0.0.3"></script>
+		<script src="/lib/js/external/Highcharts/exporting.js?v=0.0.3"></script>
+		<script src="/lib/js/external/Highcharts/drilldown.js?v=0.0.3"></script>
+		<!-- DataTables -->
+		<script src="/lib/js/external/datatables/jquery.dataTables.min.js?v=0.0.3"></script>
+		<script src="/lib/js/external/datatables/dataTables.bootstrap.js?v=0.0.3"></script>
+		<!-- iCheck 1.0.1 -->
+		<script src="/lib/js/external/adminTemplate/icheck.min.js?v=0.0.3"></script>
+		<!-- Datepicker -->
+		<script src="/lib/js/external/datepicker/bootstrap-datepicker.js?v=0.0.3"></script>
+		<script src="/lib/js/external/datepicker/bootstrap-datepicker.es.js?v=0.0.3" charset="UTF-8"></script>
+		<!-- Nprogress -->
+		<script src="/lib/js/external/nprogress/nprogress.js?v=0.0.3"></script>
+		<!-- Template -->
+		<script src="/lib/js/app/comun.js?v=0.0.3"></script><!--nsilva cambio de orden de script-->
+		<script type="text/javascript" src="/lib/js/external/portal/move-top.js?v=0.0.3"></script>
+		<script type="text/javascript" src="/lib/js/external/portal/easing.js?v=0.0.3"></script>
+		<script type="text/javascript" src="/lib/js/app/portal/portal.js?v=0.0.3"></script>
+		<script src="/lib/js/app/portal/busqueda.js?v=0.0.3"></script>
+		<script src="/lib/js/app/portal/contrataciones.js?v=0.0.3"></script>
+		<script src="/lib/js/app/portal/incumplidos.js?v=0.0.3"></script>
+		<script src="/lib/js/app/portal/clasificadores.js?v=0.0.3"></script>
+		<script src="/lib/js/app/portal/normativas/normativas.js?v=0.0.3"></script>
+		<script src="/lib/js/app/portal/comunicados.js?v=0.0.3"></script>
+		<script src="/lib/js/app/portal/estadisticas.js?v=0.0.3"></script>
+		<!--Downloads-->
+		<script src="/lib/download/downloadserpub.min.js?v=0.0.3"></script>
+		<script src="/lib/download/downloadprint.js?v=0.0.3"></script>
+		<script src="/lib/js/external/print/jQuery.print.js?v=0.0.3"></script>
+		<script src="/lib/js/external/timer/jquery.lwtCountdown-1.0.js?v=0.0.3"></script>
+		<script src="/lib/download/protect.min.js?v=0.0.3"></script>
+				<!-- Global site tag (gtag.js) - Google Analytics -->
+		<script async src="https://www.googletagmanager.com/gtag/js?id=UA-59533158-2?v=0.0.3"></script>
+		<script>
+			window.dataLayer = window.dataLayer || [];
+			function gtag(){dataLayer.push(arguments);}
+			gtag('js', new Date());
+
+			gtag('config', 'UA-59533158-2');
+		</script>
+	</body>
+</html>
+<div class="modal fade in  downloadfile" role="dialog" id="modal-download"  data-keyboard="false" 
+     tabindex="-1"  >
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal">
+                    <span >&times;</span>
+                </button>
+                <h4 class="modal-title"></h4>
+            </div>
+            <div class="modal-body banner-bottom-grid-right-gridprv ">
+
+
+                <div class="alert alert-success" id="modowalertsuccess" hidden="true">
+                    <button type="button" class="close" onclick="cerraralmo('modowalertsuccess')">&times;</button>
+                    <strong>Informacion </strong>
+                    <label id="modowalertsuccesslab"/>
+                </div>
+                <div class="alert alert-info" id="modowalertinfo" hidden="true">
+                    <button type="button" class="close" onclick="cerraralmo('modowalertinfo')">&times;</button>
+                    <strong>Informacion </strong>
+                    <label id="modowalertinfolab"/>
+                </div>
+                <div class="alert alert-warning" id="modowalertwarning" hidden="true">
+                    <button type="button" class="close" onclick="cerraralmo('modowalertwarning')">&times;</button>
+                    <strong>Informacion </strong>
+                    <label id="modowalertwarninglab"/>
+                </div>
+                <div class="alert alert-danger" id="modowalertdanger" hidden="true"> 
+                    <button type="button" class="close" onclick="cerraralmo('modowalertdanger')">&times;</button>
+                    <strong>Peligro!</strong>
+                    <label id="modowalertdangerlab"/>
+                </div>
+
+
+                <form id="formmodald" name="formmodald" method="POST">
+                    <div class="form-group">
+
+                        <label id="formmodaldlbl1"> </label>
+
+                    </div>
+                    <div class="captcha" id="captchasp">
+                        <label></label>
+                        <input type="text" maxlength="5" size="7" name="captcha" class="form-control captcha uppercap" required>
+                        <img>
+                        <span class="glyphicon glyphicon-refresh"></span>
+                    </div>
+                    <div class="captcha" id="captchabl">
+                        <label></label>
+
+                    </div>
+                    <div id="urldownload">
+                        <input type="hidden"  id="sitedownloadaut" name="sitedownloadaut" value=""/>
+                        <input type="hidden"  id="siteurldownload" name="siteurldownload" value=""/>
+                        <input type="hidden"  id="iddownload" name="iddownload" value=""/>
+                        <input type="hidden"  id="urltipo" name="urltipo" value=""/>
+                        <input type="hidden"  id="siteccont" name="siteccont" value=""/>
+                        <input type="hidden"  id="valsiteips" name="siteccont" value=""/>
+                    </div>
+                    <label id="formmodaldlbl3"></label>
+                    <div class="mail-grid-left">
+
+                        <input class="btn btndownm" type="button" value="Verificar" id="btnsubmitfordes">
+                    </div>
+                    <div class="clearfix"></div>
+                </form>
+            </div>
+            <div class="modal-footer"></div>
+        </div>
+    </div>
+</div><div class="modal fade in  formulariov" role="dialog" id="modal-formulariov" data-keyboard="false" 
+     tabindex="-1"  >
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal">
+                    <span >&times;</span>
+                </button>
+                <h4 class="modal-title"></h4>
+            </div>
+            <div class="modal-body banner-bottom-grid-right-gridprv ">
+                <div id="visualizarformularionav" class="form-group visualizarformularionav" hidden="true">
+                    <button type="button" class="previus" id="vformatras">
+                        <span >&larr; Anterior</span>
+                    </button>
+
+                </div>
+                <div id="visualizarformulario0" class="form-group visualizarformulariopag0" hidden="true"></div>	
+                <div id="visualizarformulario1" class="form-group visualizarformulariopag1" hidden="true"></div>	
+                <div id="visualizarformulario2" class="form-group visualizarformulariopag2" hidden="true"></div>	
+                <div id="visualizarformulario3" class="form-group visualizarformulariopag3" hidden="true"></div>	
+                <div id="visualizarformulario4" class="form-group visualizarformulariopag4" hidden="true"></div>	
+                <div id="visualizarformulario5" class="form-group visualizarformulariopag5" hidden="true"></div>	
+            </div>
+            <div class="modal-footer"></div>
+        </div>
+    </div>
+</div>

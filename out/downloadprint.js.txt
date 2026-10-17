@@ -1,0 +1,69 @@
+
+function PrintElem(elem)
+{
+
+    $(elem).print({
+// Use Global styles
+        globalStyles: false,
+// Add link with attrbute media=print
+        mediaPrint: false,
+//Custom stylesheet
+//        stylesheet: "http://fonts.googleapis.com/css?family=Inconsolata",
+//Print in a hidden iframe
+        iframe: true,
+// Don't print this
+        noPrintSelector: ".avoid-this",
+// Add this on top
+        //prepend: "SISTEMA DE CONTRATACIONES ESTATALES-SICOES.<br/>",
+        prepend: "",
+// Add this at bottom
+//<br/><p>La presente impresi&oacute;n, no representa un documento v&aacute;lido, solo es de car&aacute;cter informativo a menos que el documento impreso indique lo contrario.</p>
+        //append: "<br/><p>Edificio de la Contralor&iacute;a piso 7 (calle Indaburo esq. Col&oacute;n) La Paz, Bolivia | (591-2) 2177300</p>",
+        append: "",
+// Manually add form values
+        manuallyCopyFormValues: true,
+// resolves after print and restructure the code for better maintainability
+        deferred: $.Deferred(),
+// timeout
+        timeout: 250,
+// Custom title
+        title: null,
+// Custom document type
+        doctype: '<!doctype html>'
+
+    });
+    /*{
+     leaveOpen:true,
+     printMode:'popup'
+     });*/
+}
+function openWindownxprint() {
+    if ($('#visualizarformulario5').is(":visible")) {
+        PrintElem("#visualizarformulario5");
+    } else {
+        if ($('#visualizarformulario4').is(":visible")) {
+            PrintElem("#visualizarformulario4");
+        } else {
+            if ($('#visualizarformulario3').is(":visible")) {
+                PrintElem("#visualizarformulario3");
+            } else {
+                if ($('#visualizarformulario2').is(":visible")) {
+                    PrintElem("#visualizarformulario2");
+                } else {
+                    if ($('#visualizarformulario1').is(":visible")) {
+                        PrintElem("#visualizarformulario1");
+                    } else {
+                        if ($('#visualizarformulario0').is(":visible")) {                            
+                            PrintElem("#visualizarformulario0");
+                        }else if ($('#modalVerFormulario #visualizarformulario0').is(":visible")) {
+                            PrintElem("#modalVerFormulario #visualizarformulario0");
+                        }  else {                            
+                            window.print();
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+

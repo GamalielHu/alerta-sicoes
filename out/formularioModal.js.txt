@@ -1,0 +1,111 @@
+let widgetTurnstileId = null;
+let esperandoToken = false;
+
+/**
+ * Función para abrir modal
+ * @param link
+ * @param tokenPagina
+ * @param titulo
+ */
+function abrirModalFormulario(link, tokenPagina, titulo){
+    verificaCaptchaCloud = $("#verificacaptchacloud").val();
+
+    if (verificaCaptchaCloud == 'SI'){
+        if (esperandoToken) {
+            alert('Ya hay una petición en proceso');
+            return;
+        }
+
+        esperandoToken = true;
+
+        if (widgetTurnstileId !== null) {
+            try {
+                turnstile.remove(widgetTurnstileId);
+            } catch(e) {
+                alert('Error removiendo widget');
+            }
+            widgetTurnstileId = null;
+        }
+
+        const contenedor = document.getElementById('mi-formulario');
+        if (contenedor) {
+            contenedor.innerHTML = '';
+        }
+
+        widgetTurnstileId = turnstile.render('#mi-formulario', {
+            sitekey: $("#captchacloudkey").val(),
+            size: 'invisible',
+            action: 'sic-formularioModal',
+            callback: function(token) {
+                $.ajax({
+                    type: "POST",
+                    url: "/portal/contrataciones/verFormulario.php",
+                    async: false,
+                    data:{
+                        data: link,
+                        token: tokenPagina,
+                        tokenform: $("#tokenform").val(),
+                        "cf-turnstile-response": token
+                    },
+                    dataType: "json"
+                }).done(function(data) {
+                    $('#tituloModalFormulario').html(titulo);
+                    $('#modalVerFormulario').modal('show');
+                    $(".contenidoFormulario").html(data.data);
+                }).fail(function(xhr, status, error){
+                    if (xhr.responseJSON && xhr.responseJSON.ERROR) {
+                        alert(xhr.responseJSON.ERROR);
+                    } else {
+                        alert('Error al procesar la solicitud');
+                    }
+                }).always(function() {
+                    esperandoToken = false;
+
+                    if (widgetTurnstileId !== null) {
+                        try {
+                            turnstile.remove(widgetTurnstileId);
+                        } catch(e) {
+                            alert('Error removiendo widget');
+                        }
+                        widgetTurnstileId = null;
+                    }
+                });
+            },
+            'error-callback': function() {
+                esperandoToken = false;
+                alert('Error al verificar el captcha. Por favor, intente nuevamente.');
+
+                if (widgetTurnstileId !== null) {
+                    try {
+                        turnstile.remove(widgetTurnstileId);
+                    } catch(e) {
+                        alert('Error removiendo widget');
+                    }
+                    widgetTurnstileId = null;
+                }
+            }
+        });
+    } else {
+        $.ajax({
+            type: "POST",
+            url: "/portal/contrataciones/verFormulario.php",
+            async: false,
+            data:{
+                data: link,
+                token: tokenPagina,
+                tokenform: $("#tokenform").val()
+            },
+            dataType: "json"
+        }).done(function(data) {
+            $('#tituloModalFormulario').html(titulo);
+            $('#modalVerFormulario').modal('show');
+            $(".contenidoFormulario").html(data.data);
+        }).fail(function(xhr, status, error){
+            if (xhr.responseJSON && xhr.responseJSON.ERROR) {
+                alert(xhr.responseJSON.ERROR);
+            } else {
+                alert('Error al procesar la solicitud');
+            }
+        });
+    }
+}
