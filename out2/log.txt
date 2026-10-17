@@ -1,0 +1,10 @@
+tokId -> https://www.sicoes.gob.bo/portal/contrataciones/ficha/fichaProceso.php?cp=26-1501-00-1698265-1-1&token=795a2bccebc23f81b2b38392fffb6ed7f3c43506d1913cbea1f5b8645550e91b 4290
+tokS -> https://www.sicoes.gob.bo/portal/contrataciones/ficha/fichaProceso.php?cp=26-1501-00-1698265-1-1&token=795a2bccebc23f81b2b38392fffb6ed7f3c43506d1913cbea1f5b8645550e91b 4290
+idx -> https://www.sicoes.gob.bo/portal/contrataciones/ficha/fichaProceso.php?cp=26-1501-00-1698265-1-1&token=f35ad4bf2f699fc437b45828112ee3056a47f1bbe06dd3dd3a9442c7c385a107 4290
+por cuce: <!DOCTYPE html>
+<html>
+    <head>
+        <title>SICOES</title>
+        <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1" />
+        <link rel="icon" type="image/x-icon" href="/favicon.ico">
+        <link href="/css/external/bootstrap/bootstrap.min.css" rel="stylesheet" t
