@@ -631,6 +631,21 @@ private fun Dato(etiqueta: String, valor: String, destacado: Boolean = false) {
 @Composable
 fun TarjetaConvocatoria(c: Convocatoria, monto: String?, personal: String?, onVigilar: (() -> Unit)? = null) {
     val ctx = LocalContext.current
+    var verPersonal by remember { mutableStateOf(false) }
+    if (verPersonal) {
+        AlertDialog(
+            onDismissRequest = { verPersonal = false },
+            title = { Text("Profesionales que pide el DBC") },
+            text = {
+                Text(
+                    personal ?: "Todavía no se leyó el DBC de esta convocatoria. La app lo lee sola mientras está abierta; " +
+                        "también puedes tocar \"Ver DBC\" y el resultado aparecerá aquí.",
+                    modifier = Modifier.verticalScroll(rememberScrollState()),
+                )
+            },
+            confirmButton = { TextButton(onClick = { verPersonal = false }) { Text("Cerrar") } },
+        )
+    }
     val nueva = !c.inicial && c.detectadoEn > 0 && System.currentTimeMillis() - c.detectadoEn < 48L * 3600 * 1000
     val colorTipo = when (codigoTipo(c.tipo)) {
         "O" -> Color(0xFF0B4F6C)
@@ -693,14 +708,11 @@ fun TarjetaConvocatoria(c: Convocatoria, monto: String?, personal: String?, onVi
             if (c.detectadoEn > 0) Dato("Detectada por la app", fechaHora(c.detectadoEn))
             Dato("CUCE", c.cuce)
             Dato("Estado", c.estado)
-            if (personal != null) {
-                Spacer(Modifier.height(4.dp))
-                Text(personal, style = MaterialTheme.typography.bodySmall)
-            }
             FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                 Button(onClick = { abrirSicoes(ctx, c.cuce, FichaActivity.MODO_DBC) }) { Text("Ver DBC") }
                 OutlinedButton(onClick = { abrirSicoes(ctx, c.cuce, FichaActivity.MODO_FORM100) }) { Text("Form 100") }
                 TextButton(onClick = { abrirSicoes(ctx, c.cuce, FichaActivity.MODO_ITEMS) }) { Text("Ítems") }
+                TextButton(onClick = { verPersonal = true }) { Text("Profesionales") }
                 TextButton(onClick = { compartir(ctx, c, monto) }) { Text("Compartir") }
                 if (onVigilar != null) TextButton(onClick = onVigilar) { Text("Vigilar entidad") }
             }
@@ -817,20 +829,34 @@ fun PantallaEntidades(
                 })
             }
             Spacer(Modifier.height(8.dp))
+            val sinRestriccion =
+                ctx.getSystemService(android.os.PowerManager::class.java)?.isIgnoringBatteryOptimizations(ctx.packageName) == true
             Text(
-                "Android decide el momento exacto de cada revisión para ahorrar batería. " +
-                    "Para que no la detenga, deja la app sin restricciones de batería:",
+                "La revisión sigue funcionando con la app cerrada: es una consulta pequeña cada " +
+                    "$intervalo min, de bajo consumo. Para que Android no la frene, la app debe estar sin restricciones de batería.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Spacer(Modifier.height(8.dp))
-            OutlinedButton(onClick = {
-                try {
-                    ctx.startActivity(Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS))
-                } catch (e: Exception) {
-                    ctx.startActivity(Intent(Settings.ACTION_SETTINGS))
-                }
-            }) { Text("Ajustes de batería") }
+            if (sinRestriccion) {
+                Text("✓ Sin restricciones de batería", color = MaterialTheme.colorScheme.tertiary, fontWeight = FontWeight.Bold)
+            } else {
+                Button(onClick = {
+                    try {
+                        ctx.startActivity(
+                            Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, android.net.Uri.parse("package:${ctx.packageName}"))
+                        )
+                    } catch (e: Exception) {
+                        ctx.startActivity(Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS))
+                    }
+                }) { Text("Permitir revisar con la app cerrada") }
+            }
+            Text(
+                "En Xiaomi, Redmi, Huawei u Oppo activa también \"Inicio automático\" para Alerta SICOES en los ajustes de la app. " +
+                    "No la cierres con \"Forzar detención\": eso sí detiene los avisos.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
 

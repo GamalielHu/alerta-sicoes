@@ -172,7 +172,8 @@ class Almacen(ctx: Context) {
         private const val K_PERSONAL = "personal"
         private const val K_DESPERTAR = "ultimo_despertar"
         private const val K_INTERVALO = "intervalo_min"
-        private const val K_MONTOS = "montos_total" // "montos" guardaba a veces el precio de un ítem
+        // Se cambia el nombre cada vez que mejora la lectura del monto, para descartar los mal leídos
+        private const val K_MONTOS = "montos_casilla"
         private const val K_HORARIO = "horario_activo"
         private const val K_DIAS = "horario_dias"
         private const val K_DESDE = "horario_desde"

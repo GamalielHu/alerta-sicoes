@@ -130,7 +130,7 @@ class LectorAutomatico(private val actividad: ComponentActivity) {
             handler.post {
                 val t = actual ?: return@post
                 if (t.modo != FichaActivity.MODO_FORM100) return@post
-                Almacen(actividad).guardarMonto(t.cuce, monto)
+                Almacen(actividad).guardarMonto(t.cuce, monto.monto)
                 siguiente()
             }
         }

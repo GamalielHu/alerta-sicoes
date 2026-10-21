@@ -156,14 +156,19 @@ class FichaActivity : ComponentActivity() {
         @JavascriptInterface
         fun formulario(texto: String) {
             val monto = extraerMonto(texto)
-            if (monto != null) Almacen(this@FichaActivity).guardarMonto(cuce, monto)
+            if (monto != null) Almacen(this@FichaActivity).guardarMonto(cuce, monto.monto)
+            val detalle = if (monto != null) {
+                "Precio referencial total: ${monto.monto}\nLeído de la casilla: \"${monto.casilla}\" (guardado en la tarjeta)"
+            } else {
+                copiarTexto(texto.removePrefix("@@TOTAL@@"))
+                "No encontré la casilla de \"Precio referencial total\", así que no guardé ningún monto. " +
+                    "Copié el texto del formulario: pégalo en un mensaje para ajustar la lectura."
+            }
             if (modo == MODO_ITEMS) {
                 runOnUiThread { web.evaluateJavascript(JS_IR_A_ITEMS, null) }
-                mostrar("Ítems del proceso" + (monto?.let { " · Precio referencial total: $it" } ?: ""), cargando = false)
-            } else if (monto != null) {
-                mostrar("Formulario 100 · Precio referencial total: $monto (guardado en la tarjeta)", cargando = false)
+                mostrar("Ítems del proceso\n$detalle", cargando = false)
             } else {
-                mostrar("Formulario 100 abierto. No encontré el precio referencial en el texto.", cargando = false)
+                mostrar("Formulario 100\n$detalle", cargando = false)
             }
         }
 
@@ -225,6 +230,11 @@ class FichaActivity : ComponentActivity() {
         } catch (_: Exception) {
             Toast.makeText(this, "No hay una app para abrir este archivo ($mime)", Toast.LENGTH_LONG).show()
         }
+    }
+
+    private fun copiarTexto(texto: String) = runOnUiThread {
+        val cb = getSystemService(android.content.ClipboardManager::class.java)
+        cb?.setPrimaryClip(android.content.ClipData.newPlainText("Formulario 100", texto.take(20_000)))
     }
 
     /** Lee el DBC (PDF, Word o .zip) y busca el personal que se pide; lo muestra arriba y lo guarda en la tarjeta. */
@@ -301,27 +311,43 @@ class FichaActivity : ComponentActivity() {
             return "$entero.$dec".toDoubleOrNull()
         }
 
+        /** Monto leído y el texto exacto de la casilla de donde salió (para poder comprobarlo). */
+        class LecturaMonto(val monto: String, val casilla: String)
+
         /**
          * Precio referencial total del Formulario 100: la casilla que está debajo de
-         * "Precio referencial total". La página la manda marcada con @@TOTAL@@; si no la encontró,
-         * se busca la primera cifra que sigue a esa etiqueta en el texto y, como último recurso,
-         * la cifra más grande del formulario.
+         * "Precio referencial total". La página la manda marcada con @@TOTAL@@. Si no llegó así,
+         * se busca en el texto: la fila de abajo, en la misma columna (las celdas van separadas
+         * por tabulaciones). Si tampoco está, no se adivina: devuelve null.
          */
-        fun extraerMonto(texto: String): String? {
-            val t = texto.replace('\u00A0', ' ')
-            fun primera(s: String) = CIFRA.findAll(s).mapNotNull { valor(it.value) }.firstOrNull()
-            fun mayor(s: String) = CIFRA.findAll(s).mapNotNull { valor(it.value) }.maxOrNull()
-            val lineas = t.lines()
-            val marcado = lineas.firstOrNull()?.takeIf { it.startsWith("@@TOTAL@@") }?.let { primera(it) }
-            val trasEtiqueta = lineas.indices
-                .firstOrNull { normalizar(lineas[it]).contains("precio referencial total") }
-                ?.let { i -> lineas.subList(i, minOf(lineas.size, i + 4)).firstNotNullOfOrNull { l -> mayor(l.substringAfter("otal", l)) } }
-            val monto = marcado ?: trasEtiqueta ?: CIFRA.findAll(t).mapNotNull { valor(it.value) }.maxOrNull() ?: return null
-            if (monto < 100) return null
-            val fmt = java.text.DecimalFormat("#,##0.00", java.text.DecimalFormatSymbols(java.util.Locale.ROOT).apply {
-                groupingSeparator = '.'; decimalSeparator = ','
-            })
-            return "Bs " + fmt.format(monto)
+        fun extraerMonto(texto: String): LecturaMonto? {
+            val lineas = texto.replace('\u00A0', ' ').lines()
+            fun lectura(casilla: String): LecturaMonto? {
+                val v = CIFRA.findAll(casilla).mapNotNull { valor(it.value) }.firstOrNull()
+                    ?: Regex("\\d{3,}").find(casilla)?.value?.toDoubleOrNull()
+                    ?: return null
+                if (v < 100) return null
+                val fmt = java.text.DecimalFormat("#,##0.00", java.text.DecimalFormatSymbols(java.util.Locale.ROOT).apply {
+                    groupingSeparator = '.'; decimalSeparator = ','
+                })
+                return LecturaMonto("Bs " + fmt.format(v), casilla.trim())
+            }
+            lineas.firstOrNull()?.takeIf { it.startsWith("@@TOTAL@@") }
+                ?.let { lectura(it.removePrefix("@@TOTAL@@")) }
+                ?.let { return it }
+            for (i in lineas.indices) {
+                val celdas = lineas[i].split('\t')
+                val col = celdas.indexOfFirst { normalizar(it).contains("precio referencial total") }
+                if (col < 0) continue
+                // Misma casilla con el valor al lado de la etiqueta, o la fila de abajo en la misma columna
+                lectura(celdas[col].substringAfter("otal"))?.let { return it }
+                for (k in i + 1 until minOf(lineas.size, i + 3)) {
+                    val abajo = lineas[k].split('\t')
+                    val casilla = abajo.getOrNull(col) ?: abajo.singleOrNull() ?: continue
+                    lectura(casilla)?.let { return it }
+                }
+            }
+            return null
         }
 
         /** En el modo "items": lleva la pantalla a la tabla de ítems del Formulario 100 y la resalta. */
