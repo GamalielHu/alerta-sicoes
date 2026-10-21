@@ -52,7 +52,7 @@ object LectorDbc {
                         !n.contains("personal") &&
                         DESCARTAR.none { n.startsWith(it) || n.contains(" $it ") }
                 }
-                .map { lineas[j] }
+                .map { lineas[it] }
             if (encontrados.size > mejor.size) mejor = encontrados
         }
         if (mejor.isEmpty()) return null
