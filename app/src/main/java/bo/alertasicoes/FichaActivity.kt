@@ -216,7 +216,7 @@ class FichaActivity : ComponentActivity() {
         }
         val listo = "Listo: ${f.name}" + if (enDescargas) " · guardado en Descargas/AlertaSICOES" else ""
         mostrar(listo, cargando = false)
-        if (modo == MODO_DBC) analizarDbc(f, mime, listo)
+        if (modo == MODO_DBC) analizarDbc(f, listo)
 
         val uri: Uri = FileProvider.getUriForFile(this, "$packageName.archivos", f)
         val ver = Intent(Intent.ACTION_VIEW).setDataAndType(uri, mime).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
@@ -227,30 +227,13 @@ class FichaActivity : ComponentActivity() {
         }
     }
 
-    /** Lee el DBC (si es PDF) y busca el personal que se pide; lo muestra arriba y lo guarda en la tarjeta. */
-    private fun analizarDbc(f: File, mime: String, listo: String) {
-        if (mime != "application/pdf" && f.extension.lowercase() != "pdf") {
-            mostrar("$listo\nEl análisis del personal solo funciona con DBC en PDF.", cargando = false)
-            return
-        }
+    /** Lee el DBC (PDF, Word o .zip) y busca el personal que se pide; lo muestra arriba y lo guarda en la tarjeta. */
+    private fun analizarDbc(f: File, listo: String) {
         mostrar("$listo\nBuscando el personal requerido en el DBC…", cargando = true)
         Thread {
-            val texto = try {
-                LectorDbc.texto(applicationContext, f)
-            } catch (e: Exception) {
-                null
-            }
-            val resumen = texto?.let { LectorDbc.personal(it) }
-            when {
-                texto.isNullOrBlank() ->
-                    mostrar("$listo\nNo se pudo leer el texto del DBC (puede ser un escaneo).", cargando = false)
-                resumen == null ->
-                    mostrar("$listo\nNo encontré la sección de personal en el DBC.", cargando = false)
-                else -> {
-                    Almacen(this).guardarPersonal(cuce, resumen)
-                    mostrar("$listo\n$resumen", cargando = false)
-                }
-            }
+            val resumen = LectorDbc.analizar(applicationContext, f)
+            Almacen(this).guardarPersonal(cuce, resumen)
+            mostrar("$listo\n$resumen", cargando = false)
         }.start()
     }
 
@@ -319,12 +302,21 @@ class FichaActivity : ComponentActivity() {
         }
 
         /**
-         * Precio referencial total del Formulario 100. El total del proceso es la suma de los ítems,
-         * así que es la cifra más grande del formulario (antes se tomaba la primera, que suele ser la de un ítem).
+         * Precio referencial total del Formulario 100: la casilla que está debajo de
+         * "Precio referencial total". La página la manda marcada con @@TOTAL@@; si no la encontró,
+         * se busca la primera cifra que sigue a esa etiqueta en el texto y, como último recurso,
+         * la cifra más grande del formulario.
          */
         fun extraerMonto(texto: String): String? {
             val t = texto.replace('\u00A0', ' ')
-            val monto = CIFRA.findAll(t).mapNotNull { valor(it.value) }.maxOrNull() ?: return null
+            fun primera(s: String) = CIFRA.findAll(s).mapNotNull { valor(it.value) }.firstOrNull()
+            fun mayor(s: String) = CIFRA.findAll(s).mapNotNull { valor(it.value) }.maxOrNull()
+            val lineas = t.lines()
+            val marcado = lineas.firstOrNull()?.takeIf { it.startsWith("@@TOTAL@@") }?.let { primera(it) }
+            val trasEtiqueta = lineas.indices
+                .firstOrNull { normalizar(lineas[it]).contains("precio referencial total") }
+                ?.let { i -> lineas.subList(i, minOf(lineas.size, i + 4)).firstNotNullOfOrNull { l -> mayor(l.substringAfter("otal", l)) } }
+            val monto = marcado ?: trasEtiqueta ?: CIFRA.findAll(t).mapNotNull { valor(it.value) }.maxOrNull() ?: return null
             if (monto < 100) return null
             val fmt = java.text.DecimalFormat("#,##0.00", java.text.DecimalFormatSymbols(java.util.Locale.ROOT).apply {
                 groupingSeparator = '.'; decimalSeparator = ','
@@ -390,6 +382,33 @@ class FichaActivity : ComponentActivity() {
               if (ficha && /descargaFicha/.test(ficha.getAttribute('action') || '')) {
                 ficha.submit = function(){ enviar(ficha); };
               }
+              // Formulario 100: la casilla que está debajo de "Precio referencial total"
+              function totalDebajo(raiz){
+                var celdas = raiz.querySelectorAll('td, th');
+                for (var i = 0; i < celdas.length; i++) {
+                  var x = celdas[i];
+                  if (x.querySelector('table') || !/precio\s+referencial\s+total/i.test(x.innerText || '')) continue;
+                  var fila = x.parentElement, tabla = x.closest('table');
+                  var col = 0; for (var k = 0; k < x.cellIndex; k++) col += fila.cells[k].colSpan || 1;
+                  var sig = tabla ? tabla.rows[fila.rowIndex + 1] : null;
+                  if (!sig) continue;
+                  var pos = 0;
+                  for (var k = 0; k < sig.cells.length; k++) {
+                    var span = sig.cells[k].colSpan || 1;
+                    if (pos + span > col) { var v = (sig.cells[k].innerText || '').trim(); if (/\d/.test(v)) return v; break; }
+                    pos += span;
+                  }
+                }
+                // Sin tabla: el bloque que sigue a la etiqueta
+                var todos = raiz.querySelectorAll('div, span, label, p, b, strong');
+                for (var i = 0; i < todos.length; i++) {
+                  var e = todos[i];
+                  if (e.children.length || !/precio\s+referencial\s+total/i.test(e.textContent || '')) continue;
+                  var n = e.nextElementSibling || (e.parentElement && e.parentElement.nextElementSibling);
+                  if (n && /\d/.test(n.innerText || '')) return n.innerText.trim();
+                }
+                return '';
+              }
               // Formulario 100: avisar a la app cuando se muestre
               document.querySelectorAll('.contenidoFormulario').forEach(function(c){
                 var espera = null, ultimo = '';
@@ -397,7 +416,12 @@ class FichaActivity : ComponentActivity() {
                   clearTimeout(espera);
                   espera = setTimeout(function(){
                     var t = c.innerText || '';
-                    if (t.trim().length > 20 && t !== ultimo) { ultimo = t; AlertaApp.formulario(t); }
+                    if (t.trim().length > 20 && t !== ultimo) {
+                      ultimo = t;
+                      var total = '';
+                      try { total = totalDebajo(c); } catch (e) {}
+                      AlertaApp.formulario((total ? '@@TOTAL@@' + total + '\n' : '') + t);
+                    }
                   }, 700);
                 }).observe(c, { childList: true, subtree: true });
               });

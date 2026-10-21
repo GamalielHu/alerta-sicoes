@@ -103,7 +103,7 @@ class MainActivity : ComponentActivity() {
 
     /** Cambia cada vez que el usuario vuelve a la app: dispara la revisión al entrar. */
     private val entradas = mutableIntStateOf(0)
-    private var lector: LectorMontos? = null
+    private var lector: LectorAutomatico? = null
 
     override fun onResume() {
         super.onResume()
@@ -144,11 +144,11 @@ class MainActivity : ComponentActivity() {
             MaterialTheme(colorScheme = colores) {
                 PantallaPrincipal(
                     entradas = entradas.intValue,
-                    onFaltanMontos = { cuces -> lector?.pedir(cuces) },
+                    onFaltanDatos = { sinMonto, sinPersonal -> lector?.pedir(sinMonto, sinPersonal) },
                 )
             }
         }
-        lector = LectorMontos(this)
+        lector = LectorAutomatico(this)
     }
 }
 
@@ -195,7 +195,7 @@ private fun plazo(fechaPresentacion: String): String {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PantallaPrincipal(entradas: Int, onFaltanMontos: (List<String>) -> Unit) {
+fun PantallaPrincipal(entradas: Int, onFaltanDatos: (List<String>, List<String>) -> Unit) {
     val ctx = LocalContext.current
     val almacen = remember { Almacen(ctx) }
     var version by remember { mutableIntStateOf(0) }
@@ -249,15 +249,12 @@ fun PantallaPrincipal(entradas: Int, onFaltanMontos: (List<String>) -> Unit) {
         if (vigilancias.isNotEmpty() && System.currentTimeMillis() - almacen.ultimaRevision() > 60_000) revisar(true)
     }
 
-    // Busca solo el monto de las convocatorias que aún no lo tienen (las más recientes primero)
-    LaunchedEffect(convocatorias, montos) {
-        val faltan = convocatorias
-            .filter { it.cuce !in montos }
-            .sortedByDescending { it.detectadoEn }
-            .map { it.cuce }
-            .distinct()
-            .take(15)
-        if (faltan.isNotEmpty()) onFaltanMontos(faltan)
+    // Busca solo el monto y el personal de las convocatorias que aún no los tienen (las más recientes primero)
+    LaunchedEffect(convocatorias, montos, personal) {
+        val recientes = convocatorias.sortedByDescending { it.detectadoEn }.map { it.cuce }.distinct()
+        val sinMonto = recientes.filter { it !in montos }.take(15)
+        val sinPersonal = recientes.filter { it !in personal }.take(8)
+        if (sinMonto.isNotEmpty() || sinPersonal.isNotEmpty()) onFaltanDatos(sinMonto, sinPersonal)
     }
 
     Scaffold(

@@ -3,6 +3,7 @@ package bo.alertasicoes
 import android.annotation.SuppressLint
 import android.os.Handler
 import android.os.Looper
+import android.util.Base64
 import android.view.ViewGroup
 import android.webkit.CookieManager
 import android.webkit.JavascriptInterface
@@ -10,20 +11,26 @@ import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.FrameLayout
 import androidx.activity.ComponentActivity
+import java.io.File
+import java.io.FileOutputStream
 
 /**
- * Mientras la app está abierta, abre el Formulario 100 de las convocatorias sin monto en un
- * WebView que no se ve, y guarda el precio referencial total. Es lo mismo que tocar "Form 100",
- * una convocatoria a la vez. Si el SICOES pide marcar la casilla de verificación, no se puede
- * hacer sin el usuario: esa convocatoria se salta y queda el botón "Form 100".
+ * Mientras la app está abierta, hace sola lo mismo que los botones "Form 100" y "Ver DBC", en un
+ * WebView que no se ve y de a una convocatoria por vez:
+ *  - del Formulario 100 guarda el precio referencial total,
+ *  - del DBC (PDF, Word o .zip) guarda el personal requerido.
+ * Si el SICOES pide marcar la casilla de verificación, no se puede hacer sin el usuario: esa
+ * convocatoria se salta y quedan los botones de la tarjeta.
  */
 @SuppressLint("SetJavaScriptEnabled")
-class LectorMontos(private val actividad: ComponentActivity) {
+class LectorAutomatico(private val actividad: ComponentActivity) {
+
+    private class Tarea(val cuce: String, val modo: String)
 
     private val handler = Handler(Looper.getMainLooper())
-    private val cola = ArrayDeque<String>()
+    private val cola = ArrayDeque<Tarea>()
     private val intentados = HashSet<String>()
-    private var actual: String? = null
+    private var actual: Tarea? = null
     private var paso = 0
     private var pausado = false
 
@@ -46,17 +53,19 @@ class LectorMontos(private val actividad: ComponentActivity) {
         actividad.addContentView(web, FrameLayout.LayoutParams(720, 1280))
     }
 
-    /** Agrega a la cola los CUCE que todavía no tienen monto. Cada uno se intenta una vez por sesión. */
-    fun pedir(cuces: List<String>) {
-        cuces.filter { it !in intentados && it !in cola && it != actual }.forEach { cola.addLast(it) }
+    /** Agrega a la cola lo que falta: primero los montos (rápidos), luego los DBC. Cada uno se intenta una vez por sesión. */
+    fun pedir(sinMonto: List<String>, sinPersonal: List<String>) {
+        val nuevas = sinMonto.map { Tarea(it, FichaActivity.MODO_FORM100) } + sinPersonal.map { Tarea(it, FichaActivity.MODO_DBC) }
+        nuevas.filter { t -> clave(t) !in intentados && cola.none { clave(it) == clave(t) } && actual?.let(::clave) != clave(t) }
+            .forEach { cola.addLast(it) }
         if (actual == null && !pausado) siguiente()
     }
 
-    /** Al salir de la pantalla: se detiene para no gastar batería ni chocar con "Ver DBC"/"Form 100". */
+    /** Al salir de la pantalla: se detiene para no gastar batería ni chocar con los botones de la tarjeta. */
     fun pausar() {
         pausado = true
         handler.removeCallbacks(vencido)
-        actual?.let { intentados.remove(it); cola.addFirst(it) }
+        actual?.let { intentados.remove(clave(it)); cola.addFirst(it) }
         actual = null
         web.stopLoading()
         web.loadUrl("about:blank")
@@ -73,23 +82,26 @@ class LectorMontos(private val actividad: ComponentActivity) {
         web.destroy()
     }
 
+    private fun clave(t: Tarea) = t.modo + "|" + t.cuce
+
     private fun siguiente() {
         handler.removeCallbacks(vencido)
         if (pausado) return
-        val cuce = cola.removeFirstOrNull()
-        actual = cuce
-        if (cuce == null) {
+        val t = cola.removeFirstOrNull()
+        actual = t
+        if (t == null) {
             web.loadUrl("about:blank")
             return
         }
-        intentados += cuce
+        intentados += clave(t)
         paso = 0
-        handler.postDelayed(vencido, 60_000) // si en un minuto no aparece, pasa a la siguiente
+        // Si no termina a tiempo, pasa a la siguiente (el DBC puede pesar varios MB)
+        handler.postDelayed(vencido, if (t.modo == FichaActivity.MODO_DBC) 150_000L else 60_000L)
         web.loadUrl("${SicoesCliente.BASE}/portal/index.php")
     }
 
     private fun alTerminar(url: String) {
-        val cuce = actual ?: return
+        val t = actual ?: return
         web.evaluateJavascript(FichaActivity.JS_GANCHO, null)
         when {
             paso == 0 && url.contains("index.php") -> {
@@ -102,19 +114,23 @@ class LectorMontos(private val actividad: ComponentActivity) {
             }
             paso == 1 && url.contains("convocatorias.php") -> {
                 paso = 2
-                web.evaluateJavascript(FichaActivity.jsAccion(cuce, FichaActivity.MODO_FORM100), null)
+                web.evaluateJavascript(FichaActivity.jsAccion(t.cuce, t.modo), null)
             }
         }
     }
 
-    /** Recibe lo que manda la página. Solo interesa el texto del Formulario 100. */
+    /** Recibe lo que manda la página: el texto del Formulario 100 o el archivo del DBC. */
     private inner class Puente {
+        private var archivo: File? = null
+        private var salida: FileOutputStream? = null
+
         @JavascriptInterface
         fun formulario(texto: String) {
             val monto = FichaActivity.extraerMonto(texto) ?: return // quizá aún está cargando
             handler.post {
-                val cuce = actual ?: return@post
-                Almacen(actividad).guardarMonto(cuce, monto)
+                val t = actual ?: return@post
+                if (t.modo != FichaActivity.MODO_FORM100) return@post
+                Almacen(actividad).guardarMonto(t.cuce, monto)
                 siguiente()
             }
         }
@@ -131,12 +147,27 @@ class LectorMontos(private val actividad: ComponentActivity) {
         fun documentos(json: String) {}
 
         @JavascriptInterface
-        fun inicio(nombre: String, mime: String) {}
+        fun inicio(nombre: String, mime: String) {
+            val dir = File(actividad.cacheDir, "auto").apply { mkdirs() }
+            archivo = File(dir, "dbc").also { salida = FileOutputStream(it) }
+        }
 
         @JavascriptInterface
-        fun parte(b64: String) {}
+        fun parte(b64: String) {
+            salida?.write(Base64.decode(b64, Base64.DEFAULT))
+        }
 
         @JavascriptInterface
-        fun fin() {}
+        fun fin() {
+            salida?.close()
+            salida = null
+            val f = archivo ?: return
+            val cuce = actual?.cuce ?: return
+            // Se analiza aquí mismo (hilo del puente, no el de la pantalla) y se borra el archivo
+            val resumen = LectorDbc.analizar(actividad.applicationContext, f)
+            f.delete()
+            Almacen(actividad).guardarPersonal(cuce, resumen)
+            handler.post { siguiente() }
+        }
     }
 }
