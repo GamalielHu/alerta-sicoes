@@ -60,5 +60,6 @@ dependencies {
     implementation("androidx.work:work-runtime-ktx:2.10.0")
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     implementation("org.jsoup:jsoup:1.18.3")
+    implementation("com.tom-roush:pdfbox-android:2.0.27.0") // leer el texto del DBC (PDF)
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")
 }

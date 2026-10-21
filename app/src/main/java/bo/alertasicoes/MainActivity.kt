@@ -71,6 +71,7 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -100,6 +101,26 @@ class MainActivity : ComponentActivity() {
 
     private val pedirPermiso = registerForActivityResult(ActivityResultContracts.RequestPermission()) { }
 
+    /** Cambia cada vez que el usuario vuelve a la app: dispara la revisión al entrar. */
+    private val entradas = mutableIntStateOf(0)
+    private var lector: LectorMontos? = null
+
+    override fun onResume() {
+        super.onResume()
+        entradas.intValue++
+        lector?.reanudar()
+    }
+
+    override fun onPause() {
+        super.onPause()
+        lector?.pausar()
+    }
+
+    override fun onDestroy() {
+        lector?.destruir()
+        super.onDestroy()
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         if (Build.VERSION.SDK_INT >= 33 &&
@@ -120,8 +141,14 @@ class MainActivity : ComponentActivity() {
                     surfaceVariant = Color(0xFFE8EEF1),
                 )
             }
-            MaterialTheme(colorScheme = colores) { PantallaPrincipal() }
+            MaterialTheme(colorScheme = colores) {
+                PantallaPrincipal(
+                    entradas = entradas.intValue,
+                    onFaltanMontos = { cuces -> lector?.pedir(cuces) },
+                )
+            }
         }
+        lector = LectorMontos(this)
     }
 }
 
@@ -168,7 +195,7 @@ private fun plazo(fechaPresentacion: String): String {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PantallaPrincipal() {
+fun PantallaPrincipal(entradas: Int, onFaltanMontos: (List<String>) -> Unit) {
     val ctx = LocalContext.current
     val almacen = remember { Almacen(ctx) }
     var version by remember { mutableIntStateOf(0) }
@@ -183,7 +210,9 @@ fun PantallaPrincipal() {
     val vigilancias = remember(version) { almacen.vigilancias() }
     val convocatorias = remember(version) { almacen.convocatorias() }
     val montos = remember(version) { almacen.montos() }
+    val personal = remember(version) { almacen.personal() }
     val ultima = remember(version) { almacen.ultimaRevision() }
+    val ultimaAuto = remember(version) { almacen.ultimaAutomatica() }
     val error = remember(version) { almacen.ultimoError() }
     val intervalo = remember(version) { almacen.intervaloMin() }
 
@@ -196,7 +225,8 @@ fun PantallaPrincipal() {
     var plantilla by remember { mutableStateOf<String?>(null) }
     val busqueda = remember { EstadoBusqueda() }
 
-    val revisarAhora: () -> Unit = {
+    // Al entrar no se avisa "sin novedades", solo si hay nuevas o un problema
+    val revisar: (Boolean) -> Unit = { silencioso ->
         if (!cargando) {
             cargando = true
             scope.launch {
@@ -205,11 +235,29 @@ fun PantallaPrincipal() {
                 val msg = when {
                     r.errores.isNotEmpty() -> "No se pudo revisar: ${r.errores.first()}"
                     r.nuevas > 0 -> "${r.nuevas} convocatoria(s) nueva(s)"
+                    silencioso -> null
                     else -> "Revisado. Sin convocatorias nuevas."
                 }
-                snackbar.showSnackbar(msg)
+                if (msg != null) snackbar.showSnackbar(msg)
             }
         }
+    }
+    val revisarAhora: () -> Unit = { revisar(false) }
+
+    // Cada vez que se entra a la app se actualiza (salvo que se haya revisado hace menos de 1 minuto)
+    LaunchedEffect(entradas) {
+        if (vigilancias.isNotEmpty() && System.currentTimeMillis() - almacen.ultimaRevision() > 60_000) revisar(true)
+    }
+
+    // Busca solo el monto de las convocatorias que aún no lo tienen (las más recientes primero)
+    LaunchedEffect(convocatorias, montos) {
+        val faltan = convocatorias
+            .filter { it.cuce !in montos }
+            .sortedByDescending { it.detectadoEn }
+            .map { it.cuce }
+            .distinct()
+            .take(15)
+        if (faltan.isNotEmpty()) onFaltanMontos(faltan)
     }
 
     Scaffold(
@@ -221,6 +269,11 @@ fun PantallaPrincipal() {
                         Text(
                             if (ultima > 0) "Última revisión: ${fechaHora(ultima)} · cada $intervalo min"
                             else "Aún no se ha revisado",
+                            style = MaterialTheme.typography.labelSmall,
+                        )
+                        Text(
+                            if (ultimaAuto > 0) "En segundo plano: ${fechaHora(ultimaAuto)}"
+                            else "En segundo plano: aún no corrió",
                             style = MaterialTheme.typography.labelSmall,
                         )
                     }
@@ -284,10 +337,11 @@ fun PantallaPrincipal() {
                 }
             }
             when (pestana) {
-                0 -> ListaConvocatorias(convocatorias, vigilancias, montos, onIrAEntidades = { pestana = 2 })
+                0 -> ListaConvocatorias(convocatorias, vigilancias, montos, personal, onIrAEntidades = { pestana = 2 })
                 1 -> PantallaBusqueda(
                     estado = busqueda,
                     montos = montos,
+                    personal = personal,
                     onVigilar = { entidad ->
                         editando = null
                         plantilla = entidad
@@ -332,6 +386,7 @@ fun ListaConvocatorias(
     lista: List<Convocatoria>,
     vigilancias: List<Vigilancia>,
     montos: Map<String, String>,
+    personal: Map<String, String>,
     onIrAEntidades: () -> Unit,
 ) {
     var filtroTipo by rememberSaveable { mutableStateOf("") }
@@ -375,7 +430,7 @@ fun ListaConvocatorias(
                 contentPadding = PaddingValues(12.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                items(visibles, key = { it.vigilanciaId + "|" + it.cuce }) { TarjetaConvocatoria(it, montos[it.cuce]) }
+                items(visibles, key = { it.vigilanciaId + "|" + it.cuce }) { TarjetaConvocatoria(it, montos[it.cuce], personal[it.cuce]) }
             }
         }
     }
@@ -415,7 +470,12 @@ class EstadoBusqueda {
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
-fun PantallaBusqueda(estado: EstadoBusqueda, montos: Map<String, String>, onVigilar: (String) -> Unit) {
+fun PantallaBusqueda(
+    estado: EstadoBusqueda,
+    montos: Map<String, String>,
+    personal: Map<String, String>,
+    onVigilar: (String) -> Unit,
+) {
     val scope = rememberCoroutineScope()
     val foco = LocalFocusManager.current
 
@@ -519,7 +579,7 @@ fun PantallaBusqueda(estado: EstadoBusqueda, montos: Map<String, String>, onVigi
         }
         items(estado.resultados ?: emptyList(), key = { "b|" + it.cuce }) { f ->
             val c = Convocatoria.desdeFila(f, vigilanciaId = "", detectadoEn = 0L, inicial = true)
-            TarjetaConvocatoria(c, montos[c.cuce], onVigilar = { onVigilar(f.entidad) })
+            TarjetaConvocatoria(c, montos[c.cuce], personal[c.cuce], onVigilar = { onVigilar(f.entidad) })
         }
     }
 }
@@ -572,7 +632,7 @@ private fun Dato(etiqueta: String, valor: String, destacado: Boolean = false) {
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun TarjetaConvocatoria(c: Convocatoria, monto: String?, onVigilar: (() -> Unit)? = null) {
+fun TarjetaConvocatoria(c: Convocatoria, monto: String?, personal: String?, onVigilar: (() -> Unit)? = null) {
     val ctx = LocalContext.current
     val nueva = !c.inicial && c.detectadoEn > 0 && System.currentTimeMillis() - c.detectadoEn < 48L * 3600 * 1000
     val colorTipo = when (codigoTipo(c.tipo)) {
@@ -618,7 +678,7 @@ fun TarjetaConvocatoria(c: Convocatoria, monto: String?, onVigilar: (() -> Unit)
                 )
             } else {
                 Text(
-                    "Monto: toca \"Form 100\" para verlo",
+                    "Monto: buscándolo en el Form 100… (o tócalo aquí)",
                     style = MaterialTheme.typography.bodySmall,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.secondary,
@@ -627,14 +687,23 @@ fun TarjetaConvocatoria(c: Convocatoria, monto: String?, onVigilar: (() -> Unit)
             }
             Spacer(Modifier.height(6.dp))
             Dato("Fecha de publicación", c.fechaPublicacion)
-            Dato("Fecha de presentación", c.fechaPresentacion + plazo(c.fechaPresentacion), destacado = true)
+            val dia = diaSemana(c.fechaPresentacion)
+            Dato(
+                "Fecha de presentación",
+                c.fechaPresentacion + (if (dia.isNotEmpty()) " ($dia)" else "") + plazo(c.fechaPresentacion),
+                destacado = true,
+            )
             if (c.detectadoEn > 0) Dato("Detectada por la app", fechaHora(c.detectadoEn))
             Dato("CUCE", c.cuce)
             Dato("Estado", c.estado)
+            if (personal != null) {
+                Spacer(Modifier.height(4.dp))
+                Text(personal, style = MaterialTheme.typography.bodySmall)
+            }
             FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                 Button(onClick = { abrirSicoes(ctx, c.cuce, FichaActivity.MODO_DBC) }) { Text("Ver DBC") }
                 OutlinedButton(onClick = { abrirSicoes(ctx, c.cuce, FichaActivity.MODO_FORM100) }) { Text("Form 100") }
-                TextButton(onClick = { abrirSicoes(ctx, c.cuce, FichaActivity.MODO_FICHA) }) { Text("Ficha") }
+                TextButton(onClick = { abrirSicoes(ctx, c.cuce, FichaActivity.MODO_ITEMS) }) { Text("Ítems") }
                 TextButton(onClick = { compartir(ctx, c, monto) }) { Text("Compartir") }
                 if (onVigilar != null) TextButton(onClick = onVigilar) { Text("Vigilar entidad") }
             }

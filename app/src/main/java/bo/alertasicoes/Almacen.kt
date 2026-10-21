@@ -67,14 +67,20 @@ class Almacen(ctx: Context) {
     fun guardarResultado(
         convocatorias: List<Convocatoria>,
         vistos: Map<String, Long>,
+        revisadas: List<Vigilancia>,
         inicializadas: Set<String>,
         momento: Long,
         error: String?,
+        automatica: Boolean,
     ) = synchronized(LOCK) {
-        // Por si se borró una entidad mientras se revisaba
-        val vigentes = vigilancias().map { it.id }.toSet()
+        // Si una entidad se borró o se editó mientras se revisaba, lo revisado ya no vale para ella:
+        // se descarta y la próxima revisión la vuelve a cargar sin avisar.
+        val actuales = vigilancias().associateBy { it.id }
+        val validas = revisadas.filter { actuales[it.id] == it }.map { it.id }.toSet()
         val arr = JSONArray()
-        convocatorias.filter { it.vigilanciaId in vigentes }.forEach { arr.put(it.aJson()) }
+        convocatorias.filter { it.vigilanciaId in validas }.forEach { arr.put(it.aJson()) }
+        // Las editadas durante la revisión conservan lo que tenían guardado
+        convocatorias().filter { it.vigilanciaId in actuales && it.vigilanciaId !in validas }.forEach { arr.put(it.aJson()) }
         val vis = JSONObject()
         vistos.forEach { (k, v) -> vis.put(k, v) }
         val ed = prefs.edit()
@@ -82,7 +88,8 @@ class Almacen(ctx: Context) {
             .putString(K_VISTOS, vis.toString())
             .putLong(K_ULTIMO, momento)
         if (error == null) ed.remove(K_ERROR) else ed.putString(K_ERROR, error)
-        inicializadas.forEach { ed.putBoolean("init_$it", true) }
+        if (automatica) ed.putLong(K_ULTIMO_AUTO, momento)
+        inicializadas.filter { it in validas }.forEach { ed.putBoolean("init_$it", true) }
         ed.apply()
     }
 
@@ -101,10 +108,32 @@ class Almacen(ctx: Context) {
         prefs.edit().putString(K_MONTOS, o.toString()).apply()
     }
 
+    // ---------- Personal requerido (sacado del DBC) ----------
+
+    fun personal(): Map<String, String> {
+        val o = JSONObject(prefs.getString(K_PERSONAL, null) ?: "{}")
+        val m = HashMap<String, String>()
+        o.keys().forEach { k -> m[k] = o.optString(k) }
+        return m
+    }
+
+    fun guardarPersonal(cuce: String, resumen: String) = synchronized(LOCK) {
+        val o = JSONObject(prefs.getString(K_PERSONAL, null) ?: "{}")
+        o.put(cuce, resumen)
+        prefs.edit().putString(K_PERSONAL, o.toString()).apply()
+    }
+
     // ---------- Estado y ajustes ----------
 
     fun ultimaRevision(): Long = prefs.getLong(K_ULTIMO, 0L)
     fun ultimoError(): String? = prefs.getString(K_ERROR, null)
+
+    /** Última revisión hecha en segundo plano (sirve para saber si Android la está dejando correr). */
+    fun ultimaAutomatica(): Long = prefs.getLong(K_ULTIMO_AUTO, 0L)
+
+    /** Última vez que Android despertó la tarea de fondo (aunque estuviera fuera de horario). */
+    fun ultimoDespertar(): Long = prefs.getLong(K_DESPERTAR, 0L)
+    fun marcarDespertar() = prefs.edit().putLong(K_DESPERTAR, System.currentTimeMillis()).apply()
 
     fun intervaloMin(): Int = prefs.getInt(K_INTERVALO, 30)
     fun setIntervaloMin(m: Int) = prefs.edit().putInt(K_INTERVALO, m).apply()
@@ -139,8 +168,11 @@ class Almacen(ctx: Context) {
         private const val K_VISTOS = "vistos"
         private const val K_ULTIMO = "ultima_revision"
         private const val K_ERROR = "ultimo_error"
+        private const val K_ULTIMO_AUTO = "ultima_revision_auto"
+        private const val K_PERSONAL = "personal"
+        private const val K_DESPERTAR = "ultimo_despertar"
         private const val K_INTERVALO = "intervalo_min"
-        private const val K_MONTOS = "montos"
+        private const val K_MONTOS = "montos_total" // "montos" guardaba a veces el precio de un ítem
         private const val K_HORARIO = "horario_activo"
         private const val K_DIAS = "horario_dias"
         private const val K_DESDE = "horario_desde"

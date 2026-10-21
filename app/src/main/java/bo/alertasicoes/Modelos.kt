@@ -46,6 +46,15 @@ fun fechaMs(texto: String): Long? {
     }
 }
 
+private val DIAS = listOf("domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado")
+
+/** Día de la semana de una fecha "dd/MM/yyyy" del SICOES ("lunes", "martes"…), o "" si no se puede leer. */
+fun diaSemana(texto: String): String {
+    val ms = fechaMs(texto) ?: return ""
+    val cal = java.util.Calendar.getInstance().apply { timeInMillis = ms }
+    return DIAS[cal.get(java.util.Calendar.DAY_OF_WEEK) - 1]
+}
+
 /** Una entidad que el usuario quiere vigilar. */
 data class Vigilancia(
     val id: String,

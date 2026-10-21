@@ -31,6 +31,7 @@ import java.io.FileOutputStream
  * Abre la página real del SICOES dentro de la app para:
  *  - "dbc":    descargar y abrir el Documento Base de Contratación,
  *  - "form100": ver el Formulario 100 (y guardar el precio referencial),
+ *  - "items":  ver los ítems del proceso (están dentro del Formulario 100),
  *  - "ficha":  descargar la ficha del proceso.
  *
  * El SICOES protege estas descargas con la verificación de Cloudflare.
@@ -94,6 +95,7 @@ class FichaActivity : ComponentActivity() {
         mostrar(
             when (modo) {
                 MODO_FORM100 -> "Abriendo el Formulario 100 de $cuce…"
+                MODO_ITEMS -> "Abriendo los ítems de $cuce (Formulario 100)…"
                 MODO_FICHA -> "Abriendo la ficha de $cuce…"
                 else -> "Buscando el DBC de $cuce…"
             },
@@ -130,53 +132,11 @@ class FichaActivity : ComponentActivity() {
             }
             paso == 1 && url.contains("convocatorias.php") -> {
                 paso = 2
-                web.evaluateJavascript(jsAccion(), null)
+                web.evaluateJavascript(jsAccion(cuce, modo), null)
             }
         }
     }
 
-    private fun jsAccion(): String = """
-        (function(cuce, modo){
-          try {
-            var f = document.getElementById('formSimple');
-            var p = cuce.split('-');
-            for (var i = 0; i < 6; i++) { var el = f.querySelector('[name=cuce' + (i + 1) + ']'); if (el) el.value = p[i] || ''; }
-            ['entidad', 'objetoContrato'].forEach(function(n){ var el = f.querySelector('[name=' + n + ']'); if (el) el.value = ''; });
-            var todos = f.querySelector('input[name=r1][value=""]'); if (todos) todos.checked = true;
-            ['bienes','obras','servicios','consultoria'].forEach(function(n){ var c = f.querySelector('[name=' + n + ']'); if (c) c.checked = true; });
-            buscarConvocatorias('Simple', 'tablaSimple', 'formSimple', 1, 'convNacional');
-            var cols = JSON.parse(document.getElementById('colsConvocatoriasSimple').value);
-            var datos = window.tablaData || [];
-            var fila = null;
-            for (var j = 0; j < datos.length; j++) { if (datos[j][cols[0]] == cuce) { fila = datos[j]; break; } }
-            if (!fila) { AlertaApp.error('No encontré el proceso ' + cuce + ' en la búsqueda del SICOES.'); return; }
-            function dec(v){ v = v || ''; try { if (v.indexOf('%') === 0) v = decodeURIComponent(v); } catch(e) {} return v; }
-            function enlaces(html, funcion){
-              var d = document.createElement('div'); d.innerHTML = html; var r = [];
-              d.querySelectorAll('a').forEach(function(a){
-                var oc = a.getAttribute('onclick') || a.getAttribute('onClick') || '';
-                var m = oc.match(new RegExp(funcion + "\\('([^']+)'"));
-                if (m) r.push({ texto: a.textContent.trim(), link: m[1] });
-              });
-              return r;
-            }
-            var docs = enlaces(dec(fila[cols[9]]), 'descargarArchivo');
-            AlertaApp.documentos(JSON.stringify(docs));
-            if (modo == 'form100') {
-              var fs = enlaces(dec(fila[cols[10]]), 'verFormulario');
-              var f100 = fs.filter(function(x){ return /100/.test(x.texto); })[0] || fs[0];
-              if (!f100) { AlertaApp.error('Este proceso no tiene Formulario 100 publicado.'); return; }
-              AlertaApp.info('Verificando con el SICOES y abriendo el Formulario 100…');
-              verFormulario(f100.link);
-            } else {
-              var dbc = docs.filter(function(x){ return /documento\s+base/i.test(x.texto); })[0];
-              if (!dbc) { AlertaApp.error('Este proceso no tiene DBC publicado. Abajo puedes tocar otro documento.'); return; }
-              AlertaApp.info('Verificando con el SICOES y descargando el DBC…');
-              descargarArchivo(dbc.link);
-            }
-          } catch (e) { AlertaApp.error('No se pudo completar: ' + e); }
-        })(${JSONObject.quote(cuce)}, ${JSONObject.quote(modo)});
-    """.trimIndent()
 
     /** Recibe lo que la página manda a la app. */
     inner class Puente {
@@ -196,9 +156,12 @@ class FichaActivity : ComponentActivity() {
         @JavascriptInterface
         fun formulario(texto: String) {
             val monto = extraerMonto(texto)
-            if (monto != null) {
-                Almacen(this@FichaActivity).guardarMonto(cuce, monto)
-                mostrar("Formulario 100 · Precio referencial: $monto (guardado en la tarjeta)", cargando = false)
+            if (monto != null) Almacen(this@FichaActivity).guardarMonto(cuce, monto)
+            if (modo == MODO_ITEMS) {
+                runOnUiThread { web.evaluateJavascript(JS_IR_A_ITEMS, null) }
+                mostrar("Ítems del proceso" + (monto?.let { " · Precio referencial total: $it" } ?: ""), cargando = false)
+            } else if (monto != null) {
+                mostrar("Formulario 100 · Precio referencial total: $monto (guardado en la tarjeta)", cargando = false)
             } else {
                 mostrar("Formulario 100 abierto. No encontré el precio referencial en el texto.", cargando = false)
             }
@@ -251,10 +214,9 @@ class FichaActivity : ComponentActivity() {
             } catch (_: Exception) {
             }
         }
-        mostrar(
-            "Listo: ${f.name}" + if (enDescargas) " · guardado en Descargas/AlertaSICOES" else "",
-            cargando = false,
-        )
+        val listo = "Listo: ${f.name}" + if (enDescargas) " · guardado en Descargas/AlertaSICOES" else ""
+        mostrar(listo, cargando = false)
+        if (modo == MODO_DBC) analizarDbc(f, mime, listo)
 
         val uri: Uri = FileProvider.getUriForFile(this, "$packageName.archivos", f)
         val ver = Intent(Intent.ACTION_VIEW).setDataAndType(uri, mime).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
@@ -265,33 +227,130 @@ class FichaActivity : ComponentActivity() {
         }
     }
 
+    /** Lee el DBC (si es PDF) y busca el personal que se pide; lo muestra arriba y lo guarda en la tarjeta. */
+    private fun analizarDbc(f: File, mime: String, listo: String) {
+        if (mime != "application/pdf" && f.extension.lowercase() != "pdf") {
+            mostrar("$listo\nEl análisis del personal solo funciona con DBC en PDF.", cargando = false)
+            return
+        }
+        mostrar("$listo\nBuscando el personal requerido en el DBC…", cargando = true)
+        Thread {
+            val texto = try {
+                LectorDbc.texto(applicationContext, f)
+            } catch (e: Exception) {
+                null
+            }
+            val resumen = texto?.let { LectorDbc.personal(it) }
+            when {
+                texto.isNullOrBlank() ->
+                    mostrar("$listo\nNo se pudo leer el texto del DBC (puede ser un escaneo).", cargando = false)
+                resumen == null ->
+                    mostrar("$listo\nNo encontré la sección de personal en el DBC.", cargando = false)
+                else -> {
+                    Almacen(this).guardarPersonal(cuce, resumen)
+                    mostrar("$listo\n$resumen", cargando = false)
+                }
+            }
+        }.start()
+    }
+
     companion object {
         const val EXTRA_CUCE = "cuce"
         const val EXTRA_MODO = "modo"
         const val MODO_DBC = "dbc"
         const val MODO_FORM100 = "form100"
         const val MODO_FICHA = "ficha"
+        const val MODO_ITEMS = "items"
 
-        /** Busca "Precio referencial" (o "Monto") en el texto del Formulario 100. */
-        fun extraerMonto(texto: String): String? {
-            val t = texto.replace(' ', ' ')
-            val patrones = listOf(
-                Regex("precio\\s+referencial[^0-9]{0,80}?(\\d{1,3}(?:[.,\\s]\\d{3})*(?:[.,]\\d{1,2})?)", RegexOption.IGNORE_CASE),
-                Regex("monto[^0-9]{0,60}?(\\d{1,3}(?:[.,\\s]\\d{3})*(?:[.,]\\d{1,2})?)", RegexOption.IGNORE_CASE),
-            )
-            for (p in patrones) {
-                val m = p.find(t) ?: continue
-                val num = m.groupValues[1].trim()
-                if (num.replace(Regex("[^0-9]"), "").length >= 3) return "Bs $num"
-            }
-            return null
+        /** Busca el proceso en la página de convocatorias y pulsa el DBC o el Formulario 100. */
+        fun jsAccion(cuce: String, modo: String): String = """
+            (function(cuce, modo){
+              try {
+                var f = document.getElementById('formSimple');
+                var p = cuce.split('-');
+                for (var i = 0; i < 6; i++) { var el = f.querySelector('[name=cuce' + (i + 1) + ']'); if (el) el.value = p[i] || ''; }
+                ['entidad', 'objetoContrato'].forEach(function(n){ var el = f.querySelector('[name=' + n + ']'); if (el) el.value = ''; });
+                var todos = f.querySelector('input[name=r1][value=""]'); if (todos) todos.checked = true;
+                ['bienes','obras','servicios','consultoria'].forEach(function(n){ var c = f.querySelector('[name=' + n + ']'); if (c) c.checked = true; });
+                buscarConvocatorias('Simple', 'tablaSimple', 'formSimple', 1, 'convNacional');
+                var cols = JSON.parse(document.getElementById('colsConvocatoriasSimple').value);
+                var datos = window.tablaData || [];
+                var fila = null;
+                for (var j = 0; j < datos.length; j++) { if (datos[j][cols[0]] == cuce) { fila = datos[j]; break; } }
+                if (!fila) { AlertaApp.error('No encontré el proceso ' + cuce + ' en la búsqueda del SICOES.'); return; }
+                function dec(v){ v = v || ''; try { if (v.indexOf('%') === 0) v = decodeURIComponent(v); } catch(e) {} return v; }
+                function enlaces(html, funcion){
+                  var d = document.createElement('div'); d.innerHTML = html; var r = [];
+                  d.querySelectorAll('a').forEach(function(a){
+                    var oc = a.getAttribute('onclick') || a.getAttribute('onClick') || '';
+                    var m = oc.match(new RegExp(funcion + "\\('([^']+)'"));
+                    if (m) r.push({ texto: a.textContent.trim(), link: m[1] });
+                  });
+                  return r;
+                }
+                var docs = enlaces(dec(fila[cols[9]]), 'descargarArchivo');
+                AlertaApp.documentos(JSON.stringify(docs));
+                if (modo == 'form100' || modo == 'items') {
+                  var fs = enlaces(dec(fila[cols[10]]), 'verFormulario');
+                  var f100 = fs.filter(function(x){ return /100/.test(x.texto); })[0] || fs[0];
+                  if (!f100) { AlertaApp.error('Este proceso no tiene Formulario 100 publicado.'); return; }
+                  AlertaApp.info('Verificando con el SICOES y abriendo el Formulario 100…');
+                  verFormulario(f100.link);
+                } else {
+                  var dbc = docs.filter(function(x){ return /documento\s+base/i.test(x.texto); })[0];
+                  if (!dbc) { AlertaApp.error('Este proceso no tiene DBC publicado. Abajo puedes tocar otro documento.'); return; }
+                  AlertaApp.info('Verificando con el SICOES y descargando el DBC…');
+                  descargarArchivo(dbc.link);
+                }
+              } catch (e) { AlertaApp.error('No se pudo completar: ' + e); }
+            })(${JSONObject.quote(cuce)}, ${JSONObject.quote(modo)});
+        """.trimIndent()
+
+        /** Cifras con decimales o con separador de miles: "1.234.567,89", "1,234,567.89", "45000.00", "1.500.000". */
+        private val CIFRA = Regex("(?<![\\d.,])(\\d{1,3}(?:[.,]\\d{3})+(?:[.,]\\d{1,2})?|\\d+[.,]\\d{1,2})(?![\\d.,]\\d)")
+
+        /** Convierte una cifra en bolivianos sin importar si usa punto o coma para los decimales. */
+        private fun valor(cifra: String): Double? {
+            val u = cifra.indexOfLast { it == '.' || it == ',' }
+            val decimales = u >= 0 && cifra.length - u - 1 in 1..2
+            val entero = (if (decimales) cifra.substring(0, u) else cifra).replace(Regex("[.,]"), "")
+            val dec = if (decimales) cifra.substring(u + 1) else "0"
+            return "$entero.$dec".toDoubleOrNull()
         }
+
+        /**
+         * Precio referencial total del Formulario 100. El total del proceso es la suma de los ítems,
+         * así que es la cifra más grande del formulario (antes se tomaba la primera, que suele ser la de un ítem).
+         */
+        fun extraerMonto(texto: String): String? {
+            val t = texto.replace('\u00A0', ' ')
+            val monto = CIFRA.findAll(t).mapNotNull { valor(it.value) }.maxOrNull() ?: return null
+            if (monto < 100) return null
+            val fmt = java.text.DecimalFormat("#,##0.00", java.text.DecimalFormatSymbols(java.util.Locale.ROOT).apply {
+                groupingSeparator = '.'; decimalSeparator = ','
+            })
+            return "Bs " + fmt.format(monto)
+        }
+
+        /** En el modo "items": lleva la pantalla a la tabla de ítems del Formulario 100 y la resalta. */
+        private val JS_IR_A_ITEMS = """
+            (function(){
+              var ts = document.querySelectorAll('.contenidoFormulario table, table');
+              for (var i = 0; i < ts.length; i++) {
+                if (/precio\s+(referencial|unitario)|cantidad/i.test(ts[i].innerText || '')) {
+                  ts[i].style.outline = '3px solid #F4B740';
+                  ts[i].scrollIntoView({ behavior: 'smooth', block: 'start' });
+                  return;
+                }
+              }
+            })();
+        """.trimIndent()
 
         /**
          * Se inyecta en cada página del SICOES abierta en la app. La descarga sigue
          * siendo la del SICOES (con su verificación); solo cambia quién recibe el archivo.
          */
-        private val JS_GANCHO = """
+        val JS_GANCHO = """
             (function(){
               if (window.__alertaGancho) return; window.__alertaGancho = true;
               function enviar(form){

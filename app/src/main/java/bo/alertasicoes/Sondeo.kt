@@ -16,8 +16,10 @@ import java.util.concurrent.TimeUnit
 class SondeoWorker(ctx: Context, params: WorkerParameters) : CoroutineWorker(ctx, params) {
     override suspend fun doWork(): Result {
         // Fuera del horario elegido no se conecta a internet: solo se vuelve a dormir.
-        if (!Almacen(applicationContext).dentroDeHorario()) return Result.success()
-        Monitor.revisar(applicationContext)
+        val almacen = Almacen(applicationContext)
+        almacen.marcarDespertar()
+        if (!almacen.dentroDeHorario()) return Result.success()
+        Monitor.revisar(applicationContext, automatica = true)
         return Result.success()
     }
 }

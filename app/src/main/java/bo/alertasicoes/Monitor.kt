@@ -12,11 +12,11 @@ object Monitor {
 
     class Resultado(val nuevas: Int, val errores: List<String>)
 
-    suspend fun revisar(ctx: Context): Resultado = mutex.withLock {
-        withContext(Dispatchers.IO) { revisarAhora(ctx.applicationContext) }
+    suspend fun revisar(ctx: Context, automatica: Boolean = false): Resultado = mutex.withLock {
+        withContext(Dispatchers.IO) { revisarAhora(ctx.applicationContext, automatica) }
     }
 
-    private fun revisarAhora(ctx: Context): Resultado {
+    private fun revisarAhora(ctx: Context, automatica: Boolean): Resultado {
         val almacen = Almacen(ctx)
         val vigilancias = almacen.vigilancias()
         val previas = almacen.convocatorias()
@@ -63,9 +63,11 @@ object Monitor {
         almacen.guardarResultado(
             convocatorias = resultado,
             vistos = vistos,
+            revisadas = vigilancias,
             inicializadas = inicializadas,
             momento = ahora,
             error = errores.takeIf { it.isNotEmpty() }?.joinToString("\n"),
+            automatica = automatica,
         )
 
         if (nuevas.isNotEmpty()) Notificador.avisarNuevas(ctx, nuevas)
